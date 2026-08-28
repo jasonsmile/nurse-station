@@ -1,0 +1,9 @@
+.env
+app.env
+**/.env
+**/__pycache__/
+**/*.pyc
+.venv/
+*.tar
+*.log
+README.md

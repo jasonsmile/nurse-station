@@ -1,0 +1,22 @@
+# Sensitive runtime configuration
+.env
+.env.*
+!.env.example
+app.env
+
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+
+# IDE settings
+.idea/
+
+# Runtime output and exported Docker images
+logs/
+*.log
+*.tar
+
+# Local backup/working copies; the maintained source is backend/
+backend_*/
+backendall/

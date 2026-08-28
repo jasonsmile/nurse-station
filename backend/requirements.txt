@@ -1,0 +1,24 @@
+# CVOnto 护士工作站后端依赖
+# Python 3.9+
+
+# Web框架
+Flask==2.3.3
+Flask-CORS==4.0.0
+
+# WSGI服务器
+gunicorn==21.2.0
+
+# 数据库
+PyMySQL==1.1.0
+
+# 缓存（可选）
+redis==5.0.1
+
+# HTTP请求
+requests==2.31.0
+
+# 环境变量
+python-dotenv==1.0.0
+
+# 工具库
+Werkzeug==2.3.7

@@ -1,0 +1,12 @@
+services:
+  api:
+    image: nurse-station:0.1.0
+    container_name: nurse-station
+    network_mode: host
+    env_file:
+      - ./app.env
+    environment:
+      TZ: Asia/Shanghai
+    restart: unless-stopped
+    volumes:
+      - /opt/nurse-station/logs:/opt/nurse-station/logs
