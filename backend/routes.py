@@ -84,7 +84,7 @@ def get_doctors():
                         # 同步到数据库
                         conn = db.get_connection()
                         try:
-                            sync_result = adapter.sync_doctors_to_db(conn)
+                            sync_result = adapter.sync_doctors_to_db(conn, use_encryption)
                             if sync_result.get('success'):
                                 logger.info(f"医生数据自动同步成功: 新增{sync_result.get('added', 0)}条, 更新{sync_result.get('updated', 0)}条")
                             else:

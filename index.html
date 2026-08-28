@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CVOnto 护士站 V5 - 智能分诊与医嘱管理系统</title>
+    <title>CVOnto 护士站 - 智能分诊与医嘱管理系统</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; line-height: 1.6; }
@@ -14,7 +14,7 @@
         .sidebar { width: 300px; background: white; border-right: 1px solid #e8e8e8; display: flex; flex-direction: column; }
         .doctor-filter { padding: 12px; border-bottom: 1px solid #e8e8e8; background: #fafafa; }
         .doctor-filter h3 { font-size: 12px; color: #666; margin-bottom: 8px; }
-        .doctor-list { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+        .doctor-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
         .doctor-item { display: flex; align-items: center; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; background: white; }
         .doctor-item:hover { border-color: #91d5ff; background: #e6f7ff; }
         .doctor-item.active { border-color: #1890ff; background: #e6f7ff; }
@@ -23,6 +23,9 @@
         .doctor-name { font-weight: 500; font-size: 13px; color: #262626; }
         .doctor-title { font-size: 11px; color: #8c8c8c; }
         .doctor-count { background: #ff4d4f; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; min-width: 16px; text-align: center; }
+        .sync-btn { margin-top: 8px; padding: 6px 12px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; width: 100%; }
+        .sync-btn:hover { background: #40a9ff; }
+        .sync-btn:disabled { background: #d9d9d9; cursor: not-allowed; }
         .status-filter { padding: 12px; border-bottom: 1px solid #e8e8e8; }
         .status-filter h3 { font-size: 12px; color: #666; margin-bottom: 8px; }
         .status-list { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -33,7 +36,7 @@
         .patient-list-header { padding: 10px 12px; border-bottom: 1px solid #e8e8e8; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
         .patient-list-title { font-size: 12px; font-weight: 500; color: #262626; }
         .patient-search { position: relative; }
-        .patient-search input { width: 120px; padding: 5px 8px 5px 24px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 11px; }
+        .patient-search input { width: 150px; padding: 5px 8px 5px 24px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 11px; }
         .patient-list { flex: 1; overflow-y: auto; padding: 8px; }
         .patient-item { padding: 10px; border-radius: 6px; cursor: pointer; transition: all 0.3s; margin-bottom: 8px; border: 1px solid #e8e8e8; background: white; position: relative; }
         .patient-item:hover { border-color: #91d5ff; box-shadow: 0 2px 6px rgba(24,144,255,0.1); }
@@ -67,12 +70,6 @@
         .stat-number { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
         .stat-label { font-size: 11px; color: #8c8c8c; }
         .stat-total { color: #1890ff; }
-        .stat-not-reg { color: #8c8c8c; }
-        .stat-reg { color: #fa8c16; }
-        .stat-not-arr { color: #faad14; }
-        .stat-arr { color: #52c41a; }
-        .stat-treat { color: #1890ff; }
-        .stat-done { color: #13c2c2; }
         .patient-detail-card { background: white; margin: 12px; padding: 15px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
         .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
         .detail-title { display: flex; align-items: center; gap: 10px; }
@@ -83,105 +80,71 @@
         .detail-info-item { display: flex; flex-direction: column; }
         .detail-info-label { font-size: 11px; color: #8c8c8c; margin-bottom: 3px; }
         .detail-info-value { font-size: 13px; color: #262626; font-weight: 500; }
-        .consumable-alert { background: #fff2e8; border: 1px solid #ffbb96; border-radius: 6px; padding: 10px 15px; margin: 0 12px 10px; display: flex; align-items: center; gap: 8px; }
-        .consumable-alert-icon { font-size: 18px; }
-        .consumable-alert-text { flex: 1; font-size: 12px; color: #873800; }
-        .consumable-alert-count { font-weight: 600; color: #fa541c; }
         .tabs-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; margin: 0 12px 12px; background: white; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
         .tabs-header { display: flex; border-bottom: 1px solid #e8e8e8; padding: 0 15px; }
         .tab-item { padding: 12px 15px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.3s; font-size: 13px; color: #595959; display: flex; align-items: center; gap: 6px; }
         .tab-item:hover { color: #1890ff; }
         .tab-item.active { color: #1890ff; border-bottom-color: #1890ff; font-weight: 500; }
-        .tab-badge { background: #ff4d4f; color: white; font-size: 10px; padding: 2px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
-        .tab-content { flex: 1; overflow: auto; padding: 0; }
-        .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th { background: #fafafa; padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 500; color: #262626; border-bottom: 1px solid #e8e8e8; position: sticky; top: 0; z-index: 10; }
-        .data-table td { padding: 10px 12px; font-size: 12px; color: #595959; border-bottom: 1px solid #f0f0f0; }
-        .data-table tr:hover { background: #f6ffed; }
-        .status-tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 500; }
-        .type-western { background: #e6f7ff; color: #1890ff; }
-        .type-chinese { background: #f6ffed; color: #52c41a; }
-        .type-herbal { background: #fffbe6; color: #faad14; }
-        .type-consumable { background: #fff2e8; color: #fa541c; }
-        .type-exam { background: #f0f0f0; color: #595959; }
-        .priority-urgent { background: #fff1f0; color: #f5222d; }
-        .priority-normal { background: #f0f0f0; color: #595959; }
-        .consumable-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 500; background: #fff2e8; color: #fa541c; }
-        .consumable-scanned { background: #f6ffed; color: #52c41a; }
-        .consumable-pending { background: #fff2e8; color: #fa541c; }
-        .consumable-unpaid { background: #f5f5f5; color: #8c8c8c; }
-        .btn-scan { background: #fa541c; color: white; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; transition: all 0.3s; }
-        .btn-scan:hover { background: #ff7a45; }
-        .btn-scan:disabled { background: #d9d9d9; cursor: not-allowed; }
-        .btn-scanned { background: #52c41a; }
-        .filter-bar { padding: 10px 15px; border-bottom: 1px solid #e8e8e8; display: flex; gap: 12px; align-items: center; background: #fafafa; }
-        .filter-item { display: flex; align-items: center; gap: 6px; }
-        .filter-item label { font-size: 12px; color: #595959; }
-        .filter-item select { padding: 5px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 12px; }
-        .btn-refresh { background: #1890ff; color: white; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: auto; }
-        .btn-refresh:hover { background: #40a9ff; }
-        .timeline { padding: 15px; }
-        .timeline-item { display: flex; gap: 12px; margin-bottom: 15px; position: relative; }
-        .timeline-item::before { content: ''; position: absolute; left: 12px; top: 24px; bottom: -15px; width: 2px; background: #e8e8e8; }
-        .timeline-item:last-child::before { display: none; }
-        .timeline-dot { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; z-index: 1; }
-        .timeline-content { flex: 1; background: #fafafa; padding: 10px 12px; border-radius: 6px; }
-        .timeline-title { font-weight: 500; color: #262626; margin-bottom: 3px; font-size: 13px; }
+        .tab-content { flex: 1; overflow: auto; padding: 15px; }
+        .timeline { position: relative; padding-left: 30px; }
+        .timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: #e8e8e8; }
+        .timeline-item { position: relative; margin-bottom: 20px; }
+        .timeline-dot { position: absolute; left: -26px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .timeline-content { background: #fafafa; padding: 12px; border-radius: 6px; }
+        .timeline-title { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
         .timeline-time { font-size: 11px; color: #8c8c8c; }
-        .empty-state { text-align: center; padding: 40px 15px; color: #8c8c8c; }
-        .empty-state-icon { font-size: 36px; margin-bottom: 12px; }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-overlay.active { display: flex; }
-        .modal { background: white; border-radius: 8px; padding: 20px; width: 360px; max-width: 90%; }
-        .modal-header { font-size: 16px; font-weight: 500; margin-bottom: 15px; color: #262626; }
-        .modal-body { margin-bottom: 15px; }
-        .modal-body p { color: #595959; margin-bottom: 10px; font-size: 13px; }
-        .barcode-input { width: 100%; padding: 10px; border: 2px solid #d9d9d9; border-radius: 6px; font-size: 14px; text-align: center; letter-spacing: 2px; }
-        .barcode-input:focus { outline: none; border-color: #1890ff; }
-        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
-        .btn-cancel { padding: 6px 16px; border: 1px solid #d9d9d9; background: white; border-radius: 4px; cursor: pointer; font-size: 13px; }
-        .btn-confirm { padding: 6px 16px; border: none; background: #1890ff; color: white; border-radius: 4px; cursor: pointer; font-size: 13px; }
-        .btn-confirm:hover { background: #40a9ff; }
-        .api-status { position: fixed; top: 70px; right: 20px; padding: 10px 15px; border-radius: 6px; font-size: 12px; z-index: 100; display: none; }
-        .api-status.success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; display: block; }
-        .api-status.error { background: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; display: block; }
+        .loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: #8c8c8c; }
+        .empty-state { text-align: center; padding: 40px; color: #8c8c8c; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 10px; }
+        .api-status { position: fixed; top: 70px; right: 20px; padding: 10px 15px; border-radius: 4px; font-size: 12px; z-index: 1000; transition: all 0.3s; }
+        .api-status.success { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
+        .api-status.error { background: #fff1f0; border: 1px solid #ffa39e; color: #f5222d; }
+        .api-status.loading { background: #e6f7ff; border: 1px solid #91d5ff; color: #1890ff; }
     </style>
 </head>
 <body>
-    <header class="header">
-        <h1>🏥 CVOnto 护士站 V5 - 智能分诊与医嘱管理系统</h1>
+    <div class="header">
+        <h1>🏥 CVOnto 护士站 - 智能分诊与医嘱管理系统</h1>
         <div class="header-info">
-            <span>👤 当前护士：李护士</span>
-            <span>📍 心内科门诊</span>
-            <span id="currentTime">--</span>
+            <span id="currentTime"></span>
+            <span id="apiStatusText">连接中...</span>
         </div>
-    </header>
+    </div>
     
     <div class="main-container">
         <aside class="sidebar">
             <div class="doctor-filter">
-                <h3>👨‍⚕️ 选择医生</h3>
-                <div class="doctor-list" id="doctorList"></div>
+                <h3>👨‍⚕️ 医生列表</h3>
+                <div class="doctor-list" id="doctorList">
+                    <div class="loading">加载中...</div>
+                </div>
+                <button class="sync-btn" id="syncBtn" onclick="syncDoctors()">
+                    🔄 从HIS同步医生数据
+                </button>
             </div>
+            
             <div class="status-filter">
                 <h3>📊 就诊状态筛选</h3>
                 <div class="status-list" id="statusList">
-                    <span class="status-chip active" data-status="">全部</span>
-                    <span class="status-chip" data-status="not_registered">未取号</span>
-                    <span class="status-chip" data-status="registered_not_arrived">已取号未报到</span>
-                    <span class="status-chip" data-status="registered_arrived">已取号已报到</span>
-                    <span class="status-chip" data-status="in_treatment">就诊中</span>
-                    <span class="status-chip" data-status="completed">已完成</span>
+                    <div class="status-chip active" data-status="">全部</div>
+                    <div class="status-chip" data-status="not_registered">未取号</div>
+                    <div class="status-chip" data-status="registered_not_arrived">已取号未报到</div>
+                    <div class="status-chip" data-status="registered_arrived">已取号已报到</div>
+                    <div class="status-chip" data-status="in_treatment">就诊中</div>
+                    <div class="status-chip" data-status="completed">已完成</div>
                 </div>
             </div>
+            
             <div class="patient-list-container">
                 <div class="patient-list-header">
                     <span class="patient-list-title">患者列表 (<span id="patientCount">0</span>)</span>
                     <div class="patient-search">
-                        <input type="text" placeholder="搜索患者..." id="patientSearch">
+                        <input type="text" id="searchInput" placeholder="搜索患者姓名/卡号" onkeyup="searchPatients()">
                     </div>
                 </div>
-                <div class="patient-list" id="patientList"></div>
+                <div class="patient-list" id="patientList">
+                    <div class="loading">请选择医生或等待数据加载...</div>
+                </div>
             </div>
         </aside>
         
@@ -189,30 +152,30 @@
             <div class="stats-bar" id="statsBar">
                 <div class="stat-card active" data-filter="all">
                     <div class="stat-number stat-total" id="statTotal">0</div>
-                    <div class="stat-label">全部患者</div>
+                    <div class="stat-label">全部</div>
                 </div>
                 <div class="stat-card" data-filter="not_registered">
-                    <div class="stat-number stat-not-reg" id="statNotReg">0</div>
+                    <div class="stat-number" id="statNotReg">0</div>
                     <div class="stat-label">未取号</div>
                 </div>
                 <div class="stat-card" data-filter="registered">
-                    <div class="stat-number stat-reg" id="statReg">0</div>
+                    <div class="stat-number" id="statReg">0</div>
                     <div class="stat-label">已取号</div>
                 </div>
                 <div class="stat-card" data-filter="registered_not_arrived">
-                    <div class="stat-number stat-not-arr" id="statNotArr">0</div>
+                    <div class="stat-number" id="statNotArr">0</div>
                     <div class="stat-label">未报到</div>
                 </div>
                 <div class="stat-card" data-filter="registered_arrived">
-                    <div class="stat-number stat-arr" id="statArr">0</div>
+                    <div class="stat-number" id="statArr">0</div>
                     <div class="stat-label">已报到</div>
                 </div>
                 <div class="stat-card" data-filter="in_treatment">
-                    <div class="stat-number stat-treat" id="statTreat">0</div>
+                    <div class="stat-number" id="statTreat">0</div>
                     <div class="stat-label">就诊中</div>
                 </div>
                 <div class="stat-card" data-filter="completed">
-                    <div class="stat-number stat-done" id="statDone">0</div>
+                    <div class="stat-number" id="statDone">0</div>
                     <div class="stat-label">已完成</div>
                 </div>
             </div>
@@ -227,283 +190,44 @@
                 <div class="detail-info-grid" id="detailInfoGrid"></div>
             </div>
             
-            <div class="consumable-alert" id="consumableAlert" style="display: none;">
-                <span class="consumable-alert-icon">📦</span>
-                <span class="consumable-alert-text">该患者有 <span class="consumable-alert-count" id="consumableCount">0</span> 条耗材医嘱待扫码确认</span>
-            </div>
-            
             <div class="tabs-container">
                 <div class="tabs-header">
                     <div class="tab-item active" data-tab="timeline">⏱️ 就诊时间线</div>
-                    <div class="tab-item" data-tab="orders">
-                        📋 医嘱查询
-                        <span class="tab-badge" id="ordersBadge">0</span>
-                    </div>
-                    <div class="tab-item" data-tab="applications">
-                        📝 申请单查询
-                        <span class="tab-badge" id="appsBadge">0</span>
-                    </div>
                 </div>
                 
                 <div class="tab-content" id="timelineTab">
-                    <div class="timeline" id="timelineContent"></div>
-                </div>
-                
-                <div class="tab-content" id="ordersTab" style="display: none;">
-                    <div class="filter-bar">
-                        <div class="filter-item">
-                            <label>医嘱类型：</label>
-                            <select id="orderTypeFilter">
-                                <option value="">全部</option>
-                                <option value="西药">西药</option>
-                                <option value="中药">中药</option>
-                                <option value="中草药">中草药</option>
-                                <option value="耗材">耗材</option>
-                                <option value="检查">检查</option>
-                            </select>
+                    <div class="timeline" id="timelineContent">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">👆</div>
+                            <div>请选择左侧患者查看详情</div>
                         </div>
-                        <div class="filter-item">
-                            <label>状态：</label>
-                            <select id="orderStatusFilter">
-                                <option value="">全部</option>
-                                <option value="待执行">待执行</option>
-                                <option value="已执行">已执行</option>
-                                <option value="待扫码">待扫码</option>
-                                <option value="已扫码">已扫码</option>
-                            </select>
-                        </div>
-                        <button class="btn-refresh" onclick="refreshOrders()">🔄 刷新</button>
                     </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>序号</th>
-                                <th>类型</th>
-                                <th>医嘱内容</th>
-                                <th>开嘱医生</th>
-                                <th>优先级</th>
-                                <th>交费</th>
-                                <th>状态</th>
-                                <th>扫码</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersTableBody"></tbody>
-                    </table>
-                </div>
-                
-                <div class="tab-content" id="applicationsTab" style="display: none;">
-                    <div class="filter-bar">
-                        <div class="filter-item">
-                            <label>申请类型：</label>
-                            <select id="appTypeFilter">
-                                <option value="">全部</option>
-                                <option value="检查申请单">检查申请单</option>
-                                <option value="检验申请单">检验申请单</option>
-                            </select>
-                        </div>
-                        <div class="filter-item">
-                            <label>状态：</label>
-                            <select id="appStatusFilter">
-                                <option value="">全部</option>
-                                <option value="待预约">待预约</option>
-                                <option value="已预约">已预约</option>
-                                <option value="已完成">已完成</option>
-                            </select>
-                        </div>
-                        <button class="btn-refresh" onclick="refreshApplications()">🔄 刷新</button>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>序号</th>
-                                <th>申请单号</th>
-                                <th>类型</th>
-                                <th>申请项目</th>
-                                <th>目标科室</th>
-                                <th>申请医生</th>
-                                <th>预约时间</th>
-                                <th>状态</th>
-                            </tr>
-                        </thead>
-                        <tbody id="appsTableBody"></tbody>
-                    </table>
                 </div>
             </div>
         </main>
     </div>
     
-    <div class="modal-overlay" id="scanModal">
-        <div class="modal">
-            <div class="modal-header">📦 耗材条码补扫确认</div>
-            <div class="modal-body">
-                <p>患者：<strong id="scanPatientName">--</strong></p>
-                <p>耗材：<strong id="scanConsumableName">--</strong></p>
-                <p style="color: #8c8c8c; font-size: 12px; margin-top: 8px;">请扫描耗材包装上的条码</p>
-                <input type="text" class="barcode-input" id="barcodeInput" placeholder="请扫描或输入条码" autofocus>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeScanModal()">取消</button>
-                <button class="btn-confirm" onclick="confirmScan()">确认</button>
-            </div>
-        </div>
-    </div>
-    
     <div class="api-status" id="apiStatus"></div>
     
     <script>
-        // ============ 本地模拟数据（当API不可用时使用） ============
-        const LOCAL_DOCTORS = [
-            {doctor_id: 'D001', name: '张主任', title: '主任医师', specialty: '冠心病', room: '诊室1'},
-            {doctor_id: 'D002', name: '王医生', title: '副主任医师', specialty: '心律失常', room: '诊室2'},
-            {doctor_id: 'D003', name: '李医生', title: '主治医师', specialty: '高血压', room: '诊室3'},
-            {doctor_id: 'D004', name: '刘医生', title: '主治医师', specialty: '心力衰竭', room: '诊室4'},
-            {doctor_id: 'D005', name: '陈医生', title: '住院医师', specialty: '心血管内科', room: '诊室5'}
-        ];
+        // API基础地址 - 根据实际部署修改
+        const API_BASE = window.location.origin.includes('localhost') ? 'http://localhost:5000' : '';
         
-        // V5版本：bed_no -> visit_sequence, 新增 card_no
-        const LOCAL_PATIENTS = [
-            {patient_id: 'P001', patient_no: '20240630001', card_no: '1000123456', name: '张三', gender: '男', age: 65, visit_sequence: 1, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '冠心病，急性冠脉综合征', attending_doctor: '张主任', doctor_id: 'D001', visit_status: 'registered_arrived', visit_status_name: '已取号已报到', queue_no: 'A001', register_time: '2024-06-30 08:30:00', arrive_time: '2024-06-30 08:45:00', call_time: null, complete_time: null, room: '诊室1', is_emergency: false, is_vip: false},
-            {patient_id: 'P002', patient_no: '20240630002', card_no: '1000123457', name: '李四', gender: '女', age: 58, visit_sequence: 2, dept_name: '心内科', admission_date: '2024-06-29', diagnosis: '高血压病3级', attending_doctor: '王医生', doctor_id: 'D002', visit_status: 'in_treatment', visit_status_name: '就诊中', queue_no: 'A002', register_time: '2024-06-30 08:15:00', arrive_time: '2024-06-30 08:30:00', call_time: '2024-06-30 09:00:00', complete_time: null, room: '诊室2', is_emergency: false, is_vip: false},
-            {patient_id: 'P003', patient_no: '20240630003', card_no: '1000123458', name: '王五', gender: '男', age: 72, visit_sequence: 3, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '急性心肌梗死', attending_doctor: '张主任', doctor_id: 'D001', visit_status: 'registered_arrived', visit_status_name: '已取号已报到', queue_no: 'A003', register_time: '2024-06-30 09:00:00', arrive_time: '2024-06-30 09:10:00', call_time: null, complete_time: null, room: '诊室1', is_emergency: true, is_vip: false},
-            {patient_id: 'P004', patient_no: '20240630004', card_no: '1000123459', name: '赵六', gender: '女', age: 45, visit_sequence: 4, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '心律失常-房颤', attending_doctor: '王医生', doctor_id: 'D002', visit_status: 'registered_not_arrived', visit_status_name: '已取号未报到', queue_no: 'A004', register_time: '2024-06-30 08:45:00', arrive_time: null, call_time: null, complete_time: null, room: '诊室2', is_emergency: false, is_vip: true},
-            {patient_id: 'P005', patient_no: '20240630005', card_no: '1000123460', name: '钱七', gender: '男', age: 60, visit_sequence: 5, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '高血压危象', attending_doctor: '李医生', doctor_id: 'D003', visit_status: 'not_registered', visit_status_name: '未取号', queue_no: null, register_time: null, arrive_time: null, call_time: null, complete_time: null, room: '诊室3', is_emergency: true, is_vip: false},
-            {patient_id: 'P006', patient_no: '20240630006', card_no: '1000123461', name: '孙八', gender: '女', age: 55, visit_sequence: 6, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '高血压', attending_doctor: '李医生', doctor_id: 'D003', visit_status: 'completed', visit_status_name: '已完成', queue_no: 'A005', register_time: '2024-06-30 08:00:00', arrive_time: '2024-06-30 08:15:00', call_time: '2024-06-30 08:30:00', complete_time: '2024-06-30 09:15:00', room: '诊室3', is_emergency: false, is_vip: false},
-            {patient_id: 'P007', patient_no: '20240630007', card_no: '1000123462', name: '周九', gender: '男', age: 68, visit_sequence: 7, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '慢性心力衰竭', attending_doctor: '刘医生', doctor_id: 'D004', visit_status: 'registered_arrived', visit_status_name: '已取号已报到', queue_no: 'A006', register_time: '2024-06-30 09:30:00', arrive_time: '2024-06-30 09:40:00', call_time: null, complete_time: null, room: '诊室4', is_emergency: false, is_vip: false},
-            {patient_id: 'P008', patient_no: '20240630008', card_no: '1000123463', name: '吴十', gender: '女', age: 52, visit_sequence: 8, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '冠状动脉粥样硬化', attending_doctor: '陈医生', doctor_id: 'D005', visit_status: 'registered_not_arrived', visit_status_name: '已取号未报到', queue_no: 'A007', register_time: '2024-06-30 09:20:00', arrive_time: null, call_time: null, complete_time: null, room: '诊室5', is_emergency: false, is_vip: false},
-            {patient_id: 'P009', patient_no: '20240630009', card_no: '1000123464', name: '郑十一', gender: '女', age: 68, visit_sequence: 9, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '不稳定型心绞痛', attending_doctor: '张主任', doctor_id: 'D001', visit_status: 'in_treatment', visit_status_name: '就诊中', queue_no: 'A008', register_time: '2024-06-30 08:15:00', arrive_time: '2024-06-30 08:30:00', call_time: '2024-06-30 09:30:00', complete_time: null, room: '诊室1', is_emergency: false, is_vip: true},
-            {patient_id: 'P010', patient_no: '20240630010', card_no: '1000123465', name: '王十二', gender: '男', age: 55, visit_sequence: 10, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '冠心病PCI术后', attending_doctor: '张主任', doctor_id: 'D001', visit_status: 'completed', visit_status_name: '已完成', queue_no: 'A009', register_time: '2024-06-30 08:00:00', arrive_time: '2024-06-30 08:15:00', call_time: '2024-06-30 08:30:00', complete_time: '2024-06-30 09:15:00', room: '诊室1', is_emergency: false, is_vip: false},
-            {patient_id: 'P011', patient_no: '20240630011', card_no: '1000123466', name: '李十三', gender: '男', age: 62, visit_sequence: 11, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '室性早搏', attending_doctor: '王医生', doctor_id: 'D002', visit_status: 'registered_arrived', visit_status_name: '已取号已报到', queue_no: 'A010', register_time: '2024-06-30 09:30:00', arrive_time: '2024-06-30 09:40:00', call_time: null, complete_time: null, room: '诊室2', is_emergency: false, is_vip: false},
-            {patient_id: 'P012', patient_no: '20240630012', card_no: '1000123467', name: '周十四', gender: '女', age: 50, visit_sequence: 12, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '阵发性室上速', attending_doctor: '王医生', doctor_id: 'D002', visit_status: 'not_registered', visit_status_name: '未取号', queue_no: null, register_time: null, arrive_time: null, call_time: null, complete_time: null, room: '诊室2', is_emergency: false, is_vip: false},
-            {patient_id: 'P013', patient_no: '20240630013', card_no: '1000123468', name: '吴十五', gender: '男', age: 48, visit_sequence: 13, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '原发性高血压', attending_doctor: '李医生', doctor_id: 'D003', visit_status: 'registered_arrived', visit_status_name: '已取号已报到', queue_no: 'A011', register_time: '2024-06-30 09:45:00', arrive_time: '2024-06-30 09:55:00', call_time: null, complete_time: null, room: '诊室3', is_emergency: false, is_vip: false},
-            {patient_id: 'P014', patient_no: '20240630014', card_no: '1000123469', name: '郑十六', gender: '女', age: 70, visit_sequence: 14, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '急性左心衰', attending_doctor: '刘医生', doctor_id: 'D004', visit_status: 'in_treatment', visit_status_name: '就诊中', queue_no: 'A012', register_time: '2024-06-30 08:45:00', arrive_time: '2024-06-30 09:00:00', call_time: '2024-06-30 10:00:00', complete_time: null, room: '诊室4', is_emergency: true, is_vip: false},
-            {patient_id: 'P015', patient_no: '20240630015', card_no: '1000123470', name: '王十七', gender: '男', age: 45, visit_sequence: 15, dept_name: '心内科', admission_date: '2024-06-30', diagnosis: '胸痛待查', attending_doctor: '陈医生', doctor_id: 'D005', visit_status: 'registered_arrived', visit_status_name: '已取号已报到', queue_no: 'A013', register_time: '2024-06-30 10:00:00', arrive_time: '2024-06-30 10:10:00', call_time: null, complete_time: null, room: '诊室5', is_emergency: false, is_vip: false}
-        ];
-        
-        // V5版本医嘱数据
-        const LOCAL_ORDERS = {
-            'P001': [
-                {order_id: 'OR001', order_no: '20240630001', order_type: '西药', order_category: '药物治疗', status: '已执行', priority: '普通', start_time: '2024-06-30 08:00:00', items: [{item_code: 'DR001', item_name: '阿司匹林肠溶片', specification: '100mg', dosage: '100mg', unit: '片', quantity: 1, usage: '每日一次'}], doctor_name: '张主任', doctor_id: 'D001', nurse_name: '李护士', remark: '注意胃肠道反应', is_consumable: false, consumable_scanned: false, payment_status: '-'},
-                {order_id: 'OR002', order_no: '20240630002', order_type: '耗材', order_category: '耗材', status: '待扫码', priority: '紧急', start_time: '2024-06-30 09:00:00', items: [{item_code: 'CS001', item_name: '冠脉支架(药物涂层)', specification: '3.0mm×18mm', unit: '个', quantity: 1, usage: '介入手术用'}, {item_code: 'CS002', item_name: '球囊导管', specification: '2.5mm×15mm', unit: '根', quantity: 1, usage: '预扩张用'}], doctor_name: '张主任', doctor_id: 'D001', nurse_name: null, remark: 'PCI手术耗材', is_consumable: true, consumable_scanned: false, consumable_barcode: null, payment_status: '已交费', scan_time: null, scanner_nurse: null},
-                {order_id: 'OR003', order_no: '20240630003', order_type: '检查', order_category: '检查', status: '待执行', priority: '紧急', start_time: '2024-06-30 10:30:00', items: [{item_code: 'EX001', item_name: '心电图', unit: '次', quantity: 1}], doctor_name: '张主任', doctor_id: 'D001', nurse_name: null, remark: '胸痛患者', is_consumable: false, consumable_scanned: false, payment_status: '-'}
-            ],
-            'P002': [
-                {order_id: 'OR010', order_no: '20240630010', order_type: '西药', order_category: '药物治疗', status: '已执行', priority: '普通', start_time: '2024-06-30 07:00:00', items: [{item_code: 'DR003', item_name: '美托洛尔缓释片', specification: '47.5mg', dosage: '47.5mg', unit: '片', quantity: 1}], doctor_name: '王医生', doctor_id: 'D002', nurse_name: '陈护士', remark: '监测心率', is_consumable: false, consumable_scanned: false, payment_status: '-'},
-                {order_id: 'OR011', order_no: '20240630011', order_type: '耗材', order_category: '耗材', status: '已扫码', priority: '普通', start_time: '2024-06-30 09:30:00', items: [{item_code: 'CS003', item_name: '动态心电图记录仪', specification: '12导联', unit: '台', quantity: 1, usage: '24小时动态监测'}], doctor_name: '王医生', doctor_id: 'D002', nurse_name: '陈护士', remark: 'Holter检查', is_consumable: true, consumable_scanned: true, consumable_barcode: 'CS20240630001', payment_status: '已交费', scan_time: '2024-06-30 09:35:00', scanner_nurse: '李护士'}
-            ],
-            'P003': [
-                {order_id: 'OR020', order_no: '20240630020', order_type: '西药', order_category: '药物治疗', status: '已执行', priority: '紧急', start_time: '2024-06-30 09:15:00', items: [{item_code: 'DR010', item_name: '硝酸甘油', specification: '0.5mg', dosage: '0.5mg', unit: '片', quantity: 1}], doctor_name: '张主任', doctor_id: 'D001', nurse_name: '李护士', remark: '舌下含服', is_consumable: false, consumable_scanned: false, payment_status: '-'},
-                {order_id: 'OR021', order_no: '20240630021', order_type: '耗材', order_category: '耗材', status: '待交费', priority: '紧急', start_time: '2024-06-30 09:20:00', items: [{item_code: 'CS004', item_name: '临时心脏起搏器', specification: '双腔', unit: '套', quantity: 1, usage: '急诊植入'}, {item_code: 'CS005', item_name: '起搏电极导线', specification: '主动固定', unit: '根', quantity: 2, usage: '配套使用'}], doctor_name: '张主任', doctor_id: 'D001', nurse_name: null, remark: '急诊手术耗材', is_consumable: true, consumable_scanned: false, consumable_barcode: null, payment_status: '待交费', scan_time: null, scanner_nurse: null}
-            ],
-            'P004': [
-                {order_id: 'OR030', order_no: '20240630030', order_type: '西药', order_category: '药物治疗', status: '已执行', priority: '普通', start_time: '2024-06-30 08:30:00', items: [{item_code: 'DR015', item_name: '华法林钠片', specification: '2.5mg', dosage: '2.5mg', unit: '片', quantity: 1}], doctor_name: '王医生', doctor_id: 'D002', nurse_name: '陈护士', remark: '监测INR', is_consumable: false, consumable_scanned: false, payment_status: '-'},
-                {order_id: 'OR031', order_no: '20240630031', order_type: '耗材', order_category: '耗材', status: '待扫码', priority: '普通', start_time: '2024-06-30 10:00:00', items: [{item_code: 'CS006', item_name: '射频消融导管', specification: '4mm', unit: '根', quantity: 1, usage: '房颤消融用'}], doctor_name: '王医生', doctor_id: 'D002', nurse_name: null, remark: '射频消融术耗材', is_consumable: true, consumable_scanned: false, consumable_barcode: null, payment_status: '已交费', scan_time: null, scanner_nurse: null}
-            ],
-            'P005': [
-                {order_id: 'OR040', order_no: '20240630040', order_type: '西药', order_category: '药物治疗', status: '已执行', priority: '紧急', start_time: '2024-06-30 10:00:00', items: [{item_code: 'DR020', item_name: '硝普钠', specification: '50mg', dosage: '50mg', unit: '支', quantity: 1}, {item_code: 'DR021', item_name: '乌拉地尔', specification: '25mg', dosage: '25mg', unit: '支', quantity: 2}], doctor_name: '李医生', doctor_id: 'D003', nurse_name: '李护士', remark: '静脉泵入', is_consumable: false, consumable_scanned: false, payment_status: '-'}
-            ],
-            'P007': [
-                {order_id: 'OR050', order_no: '20240630050', order_type: '西药', order_category: '药物治疗', status: '已执行', priority: '普通', start_time: '2024-06-30 08:00:00', items: [{item_code: 'DR030', item_name: '呋塞米', specification: '20mg', dosage: '20mg', unit: '片', quantity: 1}, {item_code: 'DR031', item_name: '螺内酯', specification: '20mg', dosage: '20mg', unit: '片', quantity: 1}], doctor_name: '刘医生', doctor_id: 'D004', nurse_name: '陈护士', remark: '利尿剂', is_consumable: false, consumable_scanned: false, payment_status: '-'},
-                {order_id: 'OR051', order_no: '20240630051', order_type: '耗材', order_category: '耗材', status: '已扫码', priority: '普通', start_time: '2024-06-30 09:00:00', items: [{item_code: 'CS007', item_name: '胸腔穿刺包', specification: '一次性', unit: '套', quantity: 1, usage: '胸腔穿刺用'}], doctor_name: '刘医生', doctor_id: 'D004', nurse_name: '陈护士', remark: '胸腔积液穿刺', is_consumable: true, consumable_scanned: true, consumable_barcode: 'CS20240630015', payment_status: '已交费', scan_time: '2024-06-30 09:15:00', scanner_nurse: '李护士'}
-            ],
-            'P009': [
-                {order_id: 'OR060', order_no: '20240630060', order_type: '耗材', order_category: '耗材', status: '待扫码', priority: '紧急', start_time: '2024-06-30 09:45:00', items: [{item_code: 'CS008', item_name: '主动脉内球囊反搏导管', specification: '8Fr', unit: '套', quantity: 1, usage: 'IABP植入'}, {item_code: 'CS009', item_name: 'IABP球囊', specification: '40cc', unit: '个', quantity: 1, usage: '配套使用'}], doctor_name: '张主任', doctor_id: 'D001', nurse_name: null, remark: '高危PCI辅助', is_consumable: true, consumable_scanned: false, consumable_barcode: null, payment_status: '已交费', scan_time: null, scanner_nurse: null}
-            ],
-            'P011': [
-                {order_id: 'OR070', order_no: '20240630070', order_type: '耗材', order_category: '耗材', status: '待交费', priority: '普通', start_time: '2024-06-30 10:00:00', items: [{item_code: 'CS010', item_name: '心脏再同步起搏器', specification: 'CRT-D', unit: '台', quantity: 1, usage: '三腔起搏除颤'}], doctor_name: '王医生', doctor_id: 'D002', nurse_name: null, remark: '心力衰竭器械治疗', is_consumable: true, consumable_scanned: false, consumable_barcode: null, payment_status: '待交费', scan_time: null, scanner_nurse: null}
-            ],
-            'P014': [
-                {order_id: 'OR080', order_no: '20240630080', order_type: '耗材', order_category: '耗材', status: '待扫码', priority: '紧急', start_time: '2024-06-30 10:15:00', items: [{item_code: 'CS011', item_name: '无创呼吸机面罩', specification: '全面罩', unit: '个', quantity: 1, usage: 'BiPAP通气'}, {item_code: 'CS012', item_name: '呼吸管路', specification: '一次性', unit: '套', quantity: 1, usage: '配套使用'}], doctor_name: '刘医生', doctor_id: 'D004', nurse_name: null, remark: '急性心衰辅助通气', is_consumable: true, consumable_scanned: false, consumable_barcode: null, payment_status: '已交费', scan_time: null, scanner_nurse: null}
-            ],
-            'P015': [
-                {order_id: 'OR090', order_no: '20240630090', order_type: '检查', order_category: '检查', status: '待执行', priority: '普通', start_time: '2024-06-30 10:30:00', items: [{item_code: 'EX020', item_name: '运动平板试验', unit: '次', quantity: 1}], doctor_name: '陈医生', doctor_id: 'D005', nurse_name: null, remark: '评估心肌缺血', is_consumable: false, consumable_scanned: false, payment_status: '-'}
-            ]
-        };
-        
-        const LOCAL_APPLICATIONS = {
-            'P001': [
-                {app_id: 'APP001', app_no: 'EX20240630001', app_type: '检查申请单', app_category: '影像学检查', status: '已预约', priority: '紧急', apply_time: '2024-06-30 09:00:00', schedule_time: '2024-06-30 14:00:00', items: [{item_code: 'IMG001', item_name: '心脏超声', quantity: 1, price: 180.00}], doctor_name: '张主任', doctor_id: 'D001', target_dept: '超声科', clinical_diagnosis: '冠心病', purpose: '评估心功能'},
-                {app_id: 'APP002', app_no: 'EX20240630002', app_type: '检查申请单', app_category: '介入检查', status: '待预约', priority: '紧急', apply_time: '2024-06-30 09:30:00', schedule_time: null, items: [{item_code: 'IMG010', item_name: '冠状动脉造影', quantity: 1, price: 2500.00}], doctor_name: '张主任', doctor_id: 'D001', target_dept: '导管室', clinical_diagnosis: '急性冠脉综合征', purpose: '明确冠脉病变'},
-                {app_id: 'APP003', app_no: 'LAB20240630001', app_type: '检验申请单', app_category: '生化检验', status: '已完成', priority: '紧急', apply_time: '2024-06-30 08:30:00', schedule_time: '2024-06-30 08:45:00', items: [{item_code: 'LAB001', item_name: '心肌酶谱', quantity: 1, price: 120.00}, {item_code: 'LAB002', item_name: '肌钙蛋白I', quantity: 1, price: 180.00}, {item_code: 'LAB003', item_name: 'BNP', quantity: 1, price: 150.00}], doctor_name: '张主任', doctor_id: 'D001', target_dept: '检验科', clinical_diagnosis: '胸痛待查', purpose: '排除心梗'}
-            ],
-            'P002': [
-                {app_id: 'APP010', app_no: 'EX20240630010', app_type: '检查申请单', app_category: '电生理检查', status: '已预约', priority: '普通', apply_time: '2024-06-30 09:15:00', schedule_time: '2024-06-30 15:00:00', items: [{item_code: 'EP001', item_name: '24小时动态心电图', quantity: 1, price: 280.00}], doctor_name: '王医生', doctor_id: 'D002', target_dept: '心电室', clinical_diagnosis: '心律失常', purpose: '捕捉异常心律'},
-                {app_id: 'APP011', app_no: 'EX20240630011', app_type: '检查申请单', app_category: '影像学检查', status: '已完成', priority: '普通', apply_time: '2024-06-30 08:45:00', schedule_time: '2024-06-30 09:30:00', items: [{item_code: 'IMG005', item_name: '经食管超声', quantity: 1, price: 350.00}], doctor_name: '王医生', doctor_id: 'D002', target_dept: '超声科', clinical_diagnosis: '房颤', purpose: '排查左房血栓'}
-            ],
-            'P003': [
-                {app_id: 'APP020', app_no: 'EX20240630020', app_type: '检查申请单', app_category: '介入检查', status: '待预约', priority: '紧急', apply_time: '2024-06-30 09:20:00', schedule_time: null, items: [{item_code: 'IMG010', item_name: '冠状动脉造影', quantity: 1, price: 2500.00}, {item_code: 'IMG011', item_name: '左心室造影', quantity: 1, price: 800.00}], doctor_name: '张主任', doctor_id: 'D001', target_dept: '导管室', clinical_diagnosis: '急性心肌梗死', purpose: '急诊PCI'},
-                {app_id: 'APP021', app_no: 'LAB20240630010', app_type: '检验申请单', app_category: '生化检验', status: '已完成', priority: '紧急', apply_time: '2024-06-30 09:00:00', schedule_time: '2024-06-30 09:10:00', items: [{item_code: 'LAB001', item_name: '心肌酶谱', quantity: 1, price: 120.00}, {item_code: 'LAB002', item_name: '肌钙蛋白T', quantity: 1, price: 200.00}], doctor_name: '张主任', doctor_id: 'D001', target_dept: '检验科', clinical_diagnosis: '急性胸痛', purpose: '心肌损伤标志物'}
-            ],
-            'P004': [
-                {app_id: 'APP030', app_no: 'EX20240630030', app_type: '检查申请单', app_category: '电生理检查', status: '已预约', priority: '普通', apply_time: '2024-06-30 10:00:00', schedule_time: '2024-06-30 16:00:00', items: [{item_code: 'EP010', item_name: '心内电生理检查', quantity: 1, price: 3500.00}], doctor_name: '王医生', doctor_id: 'D002', target_dept: '导管室', clinical_diagnosis: '阵发性房颤', purpose: '射频消融术前评估'}
-            ],
-            'P005': [
-                {app_id: 'APP040', app_no: 'LAB20240630020', app_type: '检验申请单', app_category: '生化检验', status: '已完成', priority: '紧急', apply_time: '2024-06-30 10:00:00', schedule_time: '2024-06-30 10:15:00', items: [{item_code: 'LAB010', item_name: '肾功能', quantity: 1, price: 80.00}, {item_code: 'LAB011', item_name: '电解质', quantity: 1, price: 60.00}, {item_code: 'LAB012', item_name: '血气分析', quantity: 1, price: 120.00}], doctor_name: '李医生', doctor_id: 'D003', target_dept: '检验科', clinical_diagnosis: '高血压危象', purpose: '评估靶器官损害'}
-            ],
-            'P006': [
-                {app_id: 'APP050', app_no: 'EX20240630050', app_type: '检查申请单', app_category: '影像学检查', status: '已完成', priority: '普通', apply_time: '2024-06-30 08:30:00', schedule_time: '2024-06-30 10:00:00', items: [{item_code: 'IMG020', item_name: '颈动脉超声', quantity: 1, price: 150.00}], doctor_name: '李医生', doctor_id: 'D003', target_dept: '超声科', clinical_diagnosis: '高血压', purpose: '评估动脉硬化'}
-            ],
-            'P007': [
-                {app_id: 'APP060', app_no: 'EX20240630060', app_type: '检查申请单', app_category: '影像学检查', status: '已预约', priority: '普通', apply_time: '2024-06-30 09:30:00', schedule_time: '2024-06-30 11:00:00', items: [{item_code: 'IMG001', item_name: '心脏超声', quantity: 1, price: 180.00}], doctor_name: '刘医生', doctor_id: 'D004', target_dept: '超声科', clinical_diagnosis: '心力衰竭', purpose: '评估EF值'},
-                {app_id: 'APP061', app_no: 'EX20240630061', app_type: '检查申请单', app_category: '影像学检查', status: '待预约', priority: '普通', apply_time: '2024-06-30 09:45:00', schedule_time: null, items: [{item_code: 'IMG030', item_name: '胸部CT', quantity: 1, price: 450.00}], doctor_name: '刘医生', doctor_id: 'D004', target_dept: '放射科', clinical_diagnosis: '心衰', purpose: '排查肺部感染'}
-            ],
-            'P008': [
-                {app_id: 'APP070', app_no: 'LAB20240630030', app_type: '检验申请单', app_category: '生化检验', status: '待执行', priority: '普通', apply_time: '2024-06-30 09:30:00', schedule_time: '2024-06-30 10:30:00', items: [{item_code: 'LAB020', item_name: '血脂全套', quantity: 1, price: 120.00}, {item_code: 'LAB021', item_name: '糖化血红蛋白', quantity: 1, price: 80.00}], doctor_name: '陈医生', doctor_id: 'D005', target_dept: '检验科', clinical_diagnosis: '冠心病', purpose: '评估危险因素'}
-            ],
-            'P009': [
-                {app_id: 'APP080', app_no: 'EX20240630080', app_type: '检查申请单', app_category: '介入检查', status: '待预约', priority: '紧急', apply_time: '2024-06-30 10:00:00', schedule_time: null, items: [{item_code: 'IMG010', item_name: '冠状动脉造影', quantity: 1, price: 2500.00}, {item_code: 'IMG012', item_name: 'IVUS检查', quantity: 1, price: 3500.00}], doctor_name: '张主任', doctor_id: 'D001', target_dept: '导管室', clinical_diagnosis: '不稳定型心绞痛', purpose: '高危PCI术前评估'}
-            ],
-            'P010': [
-                {app_id: 'APP090', app_no: 'EX20240630090', app_type: '检查申请单', app_category: '影像学检查', status: '已完成', priority: '普通', apply_time: '2024-06-30 08:15:00', schedule_time: '2024-06-30 09:00:00', items: [{item_code: 'IMG040', item_name: '冠脉CTA', quantity: 1, price: 1200.00}], doctor_name: '张主任', doctor_id: 'D001', target_dept: '放射科', clinical_diagnosis: 'PCI术后复查', purpose: '评估支架通畅性'}
-            ],
-            'P011': [
-                {app_id: 'APP100', app_no: 'EX20240630100', app_type: '检查申请单', app_category: '电生理检查', status: '已预约', priority: '普通', apply_time: '2024-06-30 10:30:00', schedule_time: '2024-06-30 14:00:00', items: [{item_code: 'EP020', item_name: '起搏器程控', quantity: 1, price: 200.00}], doctor_name: '王医生', doctor_id: 'D002', target_dept: '心电室', clinical_diagnosis: 'CRT-D植入术后', purpose: '优化起搏参数'}
-            ],
-            'P012': [
-                {app_id: 'APP110', app_no: 'EX20240630110', app_type: '检查申请单', app_category: '电生理检查', status: '待预约', priority: '普通', apply_time: '2024-06-30 10:00:00', schedule_time: null, items: [{item_code: 'EP001', item_name: '24小时动态心电图', quantity: 1, price: 280.00}], doctor_name: '王医生', doctor_id: 'D002', target_dept: '心电室', clinical_diagnosis: '室上速', purpose: '发作时记录'}
-            ],
-            'P013': [
-                {app_id: 'APP120', app_no: 'EX20240630120', app_type: '检查申请单', app_category: '影像学检查', status: '已预约', priority: '普通', apply_time: '2024-06-30 10:15:00', schedule_time: '2024-06-30 11:30:00', items: [{item_code: 'IMG001', item_name: '心脏超声', quantity: 1, price: 180.00}, {item_code: 'IMG050', item_name: '颈动脉超声', quantity: 1, price: 150.00}], doctor_name: '李医生', doctor_id: 'D003', target_dept: '超声科', clinical_diagnosis: '高血压', purpose: '靶器官评估'}
-            ],
-            'P014': [
-                {app_id: 'APP130', app_no: 'EX20240630130', app_type: '检查申请单', app_category: '影像学检查', status: '已预约', priority: '紧急', apply_time: '2024-06-30 10:30:00', schedule_time: '2024-06-30 11:00:00', items: [{item_code: 'IMG060', item_name: '床旁胸片', quantity: 1, price: 80.00}], doctor_name: '刘医生', doctor_id: 'D004', target_dept: '放射科', clinical_diagnosis: '急性左心衰', purpose: '肺水肿评估'},
-                {app_id: 'APP131', app_no: 'LAB20240630040', app_type: '检验申请单', app_category: '生化检验', status: '已完成', priority: '紧急', apply_time: '2024-06-30 10:15:00', schedule_time: '2024-06-30 10:25:00', items: [{item_code: 'LAB003', item_name: 'BNP', quantity: 1, price: 150.00}, {item_code: 'LAB030', item_name: 'D-二聚体', quantity: 1, price: 100.00}], doctor_name: '刘医生', doctor_id: 'D004', target_dept: '检验科', clinical_diagnosis: '急性呼吸困难', purpose: '心源性vs肺栓塞'}
-            ],
-            'P015': [
-                {app_id: 'APP140', app_no: 'EX20240630140', app_type: '检查申请单', app_category: '影像学检查', status: '待预约', priority: '普通', apply_time: '2024-06-30 10:30:00', schedule_time: null, items: [{item_code: 'IMG070', item_name: '运动平板试验', quantity: 1, price: 200.00}], doctor_name: '陈医生', doctor_id: 'D005', target_dept: '心电室', clinical_diagnosis: '胸痛待查', purpose: '运动诱发缺血'}
-            ]
-        };
-        
-        // ============ 全局变量 ============
-        // 同源访问：由宿主机 Nginx 将 /api/ 转发到本机应用容器。
-        const API_BASE = '';
+        // 状态配置
         const STATUS_CONFIG = {
             'not_registered': { name: '未取号', color: '#8c8c8c' },
-            'registered': { name: '已取号', color: '#fa8c16' },
             'registered_not_arrived': { name: '已取号未报到', color: '#faad14' },
             'registered_arrived': { name: '已取号已报到', color: '#52c41a' },
             'in_treatment': { name: '就诊中', color: '#1890ff' },
-            'completed': { name: '已完成', color: '#13c2c2' },
-            'cancelled': { name: '已取消', color: '#f5222d' }
+            'completed': { name: '已完成', color: '#13c2c2' }
         };
         
-        // 医嘱类型样式配置
-        const ORDER_TYPE_STYLES = {
-            '西药': 'type-western',
-            '中药': 'type-chinese',
-            '中草药': 'type-herbal',
-            '耗材': 'type-consumable',
-            '检查': 'type-exam'
-        };
-        
+        // 全局数据
+        let doctorsData = [];
+        let patientsData = [];
         let currentDoctor = null;
         let currentStatus = '';
         let currentPatient = null;
-        let currentScanOrder = null;
-        let doctorsData = [];
-        let patientsData = [];
-        let ordersData = [];
-        let appsData = [];
-        let useLocalData = false;
         
         // ============ 初始化 ============
         document.addEventListener('DOMContentLoaded', init);
@@ -512,55 +236,11 @@
             updateTime();
             setInterval(updateTime, 60000);
             
-            // 尝试连接API，失败则使用本地数据
-            const apiAvailable = await checkAPI();
-            if (!apiAvailable) {
-                useLocalData = true;
-                showApiStatus('API服务未启动，使用本地模拟数据', 'error');
-                loadLocalData();
-            } else {
-                showApiStatus('API连接成功', 'success');
-                await loadDoctors();
-                await loadPatients();
-            }
+            // 加载医生数据
+            await loadDoctors();
+            
+            // 设置事件监听
             setupEventListeners();
-        }
-        
-        async function checkAPI() {
-            try {
-                const res = await fetch(`${API_BASE}/api/v5/health`, { timeout: 3000 });
-                return res.ok;
-            } catch (e) {
-                return false;
-            }
-        }
-        
-        function showApiStatus(message, type) {
-            const el = document.getElementById('apiStatus');
-            el.textContent = message;
-            el.className = 'api-status ' + type;
-            setTimeout(() => el.style.display = 'none', 5000);
-        }
-        
-        function loadLocalData() {
-            doctorsData = LOCAL_DOCTORS;
-            patientsData = LOCAL_PATIENTS;
-            renderDoctorList(doctorsData);
-            renderPatientList(patientsData);
-            updateStatsFromLocal();
-        }
-        
-        function updateStatsFromLocal() {
-            const summary = {
-                total: patientsData.length,
-                not_registered: patientsData.filter(p => p.visit_status === 'not_registered').length,
-                registered: patientsData.filter(p => p.visit_status.includes('registered')).length,
-                registered_not_arrived: patientsData.filter(p => p.visit_status === 'registered_not_arrived').length,
-                registered_arrived: patientsData.filter(p => p.visit_status === 'registered_arrived').length,
-                in_treatment: patientsData.filter(p => p.visit_status === 'in_treatment').length,
-                completed: patientsData.filter(p => p.visit_status === 'completed').length
-            };
-            updateStats(summary);
         }
         
         function updateTime() {
@@ -569,27 +249,103 @@
             });
         }
         
+        function showApiStatus(message, type) {
+            const el = document.getElementById('apiStatus');
+            const textEl = document.getElementById('apiStatusText');
+            el.textContent = message;
+            el.className = 'api-status ' + type;
+            textEl.textContent = message;
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+        
+        // ============ 医生数据加载 ============
         async function loadDoctors() {
             try {
-                const res = await fetch(`${API_BASE}/api/v5/doctors?dept_name=心内科`);
+                showApiStatus('正在加载医生数据...', 'loading');
+                
+                const res = await fetch(`${API_BASE}/api/v1/doctors?dept_name=心血管内科`);
                 const result = await res.json();
-                if (result.success) {
-                    doctorsData = result.data.doctors;
+                
+                if (result.success && result.data) {
+                    doctorsData = result.data.doctors || [];
                     renderDoctorList(doctorsData);
+                    showApiStatus(`已加载 ${doctorsData.length} 位医生`, 'success');
+                    
+                    // 加载患者数据
+                    await loadPatients();
+                } else {
+                    showApiStatus('加载医生数据失败', 'error');
                 }
             } catch (e) {
                 console.error('加载医生失败:', e);
+                showApiStatus('API连接失败，请检查服务是否启动', 'error');
+            }
+        }
+        
+        // ============ 同步医生数据 ============
+        async function syncDoctors() {
+            const btn = document.getElementById('syncBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 同步中...';
+            
+            try {
+                showApiStatus('正在从HIS同步医生数据...', 'loading');
+                
+                const res = await fetch(`${API_BASE}/api/v1/doctors/sync`, {
+                    method: 'POST'
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    showApiStatus(`同步成功！新增${data.added}条，更新${data.updated}条`, 'success');
+                    
+                    // 重新加载医生数据
+                    await loadDoctors();
+                } else {
+                    showApiStatus('同步失败：' + result.message, 'error');
+                }
+            } catch (e) {
+                console.error('同步失败:', e);
+                showApiStatus('同步失败，请检查HIS接口配置', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 从HIS同步医生数据';
             }
         }
         
         function renderDoctorList(doctors) {
             const container = document.getElementById('doctorList');
-            let html = `<div class="doctor-item ${!currentDoctor ? 'active' : ''}" data-doctor-id=""><div class="doctor-avatar">全</div><div class="doctor-info"><div class="doctor-name">全部医生</div><div class="doctor-title">心内科所有医生</div></div><span class="doctor-count" id="countAll">${patientsData.length}</span></div>`;
+            
+            if (doctors.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👨‍⚕️</div><div>暂无医生数据<br>请点击下方按钮同步</div></div>';
+                return;
+            }
+            
+            let html = `<div class="doctor-item ${!currentDoctor ? 'active' : ''}" data-doctor-id="">
+                <div class="doctor-avatar">全</div>
+                <div class="doctor-info">
+                    <div class="doctor-name">全部医生</div>
+                    <div class="doctor-title">心内科所有医生</div>
+                </div>
+                <span class="doctor-count" id="countAll">0</span>
+            </div>`;
+            
             doctors.forEach(doc => {
                 const count = patientsData.filter(p => p.doctor_id === doc.doctor_id).length;
-                html += `<div class="doctor-item" data-doctor-id="${doc.doctor_id}"><div class="doctor-avatar">${doc.name[0]}</div><div class="doctor-info"><div class="doctor-name">${doc.name}</div><div class="doctor-title">${doc.title} · ${doc.room}</div></div><span class="doctor-count" id="count${doc.doctor_id}">${count}</span></div>`;
+                html += `<div class="doctor-item" data-doctor-id="${doc.doctor_id}">
+                    <div class="doctor-avatar">${doc.name ? doc.name[0] : '?'}</div>
+                    <div class="doctor-info">
+                        <div class="doctor-name">${doc.name || '未知'}</div>
+                        <div class="doctor-title">${doc.title || ''} · ${doc.dept_name || ''}</div>
+                    </div>
+                    <span class="doctor-count" id="count${doc.doctor_id}">${count}</span>
+                </div>`;
             });
+            
             container.innerHTML = html;
+            
+            // 绑定点击事件
             container.querySelectorAll('.doctor-item').forEach(item => {
                 item.addEventListener('click', () => selectDoctor(item.dataset.doctorId));
             });
@@ -600,308 +356,278 @@
             document.querySelectorAll('.doctor-item').forEach(item => {
                 item.classList.toggle('active', item.dataset.doctorId === doctorId);
             });
-            if (useLocalData) {
-                const filtered = doctorId ? LOCAL_PATIENTS.filter(p => p.doctor_id === doctorId) : LOCAL_PATIENTS;
-                renderPatientList(filtered);
-            } else {
-                loadPatients();
-            }
+            loadPatients();
         }
         
+        // ============ 患者数据加载 ============
         async function loadPatients() {
             try {
-                let url = `${API_BASE}/api/v5/patients?dept_name=心内科`;
+                let url = `${API_BASE}/api/v1/patients?dept_name=心内科`;
                 if (currentDoctor) url += `&doctor_id=${currentDoctor}`;
                 if (currentStatus) url += `&visit_status=${currentStatus}`;
+                
                 const res = await fetch(url);
                 const result = await res.json();
-                if (result.success) {
-                    patientsData = result.data.patients;
+                
+                if (result.success && result.data) {
+                    patientsData = result.data.patients || [];
                     renderPatientList(patientsData);
-                    updateStats(result.data.summary);
+                    updateStats(result.data.summary || calculateStats(patientsData));
+                    updateDoctorCounts();
                 }
             } catch (e) {
                 console.error('加载患者失败:', e);
             }
         }
         
+        function calculateStats(patients) {
+            return {
+                total: patients.length,
+                not_registered: patients.filter(p => p.visit_status === 'not_registered').length,
+                registered: patients.filter(p => p.visit_status && p.visit_status.includes('registered')).length,
+                registered_not_arrived: patients.filter(p => p.visit_status === 'registered_not_arrived').length,
+                registered_arrived: patients.filter(p => p.visit_status === 'registered_arrived').length,
+                in_treatment: patients.filter(p => p.visit_status === 'in_treatment').length,
+                completed: patients.filter(p => p.visit_status === 'completed').length
+            };
+        }
+        
         function renderPatientList(patients) {
             const container = document.getElementById('patientList');
             document.getElementById('patientCount').textContent = patients.length;
+            
             if (patients.length === 0) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div>暂无患者</div></div>';
                 return;
             }
+            
             container.innerHTML = patients.map(p => {
                 const statusCfg = STATUS_CONFIG[p.visit_status] || STATUS_CONFIG['not_registered'];
-                return `<div class="patient-item ${p.is_emergency ? 'emergency' : ''} ${p.is_vip ? 'vip' : ''} ${currentPatient === p.patient_id ? 'active' : ''}" data-patient-id="${p.patient_id}" onclick="selectPatient('${p.patient_id}')"><div class="patient-header"><div class="patient-name-section"><span class="patient-name">${p.name}</span><div class="patient-tags">${p.is_emergency ? '<span class="patient-tag tag-emergency">急诊</span>' : ''}${p.is_vip ? '<span class="patient-tag tag-vip">VIP</span>' : ''}</div></div><span class="patient-queue">${p.queue_no || '--'}</span></div><div class="patient-info-row"><span>${p.gender}</span><span>${p.age}岁</span><span>序号:${p.visit_sequence}</span></div><div class="patient-doctor">医生：<span>${p.attending_doctor}</span> · ${p.room}</div><div class="patient-status-bar"><span class="status-badge status-${p.visit_status}"><span class="status-dot" style="background: ${statusCfg.color}"></span>${statusCfg.name}</span><span class="patient-time">${p.register_time ? formatTime(p.register_time) : ''}</span></div></div>`;
+                const isEmergency = p.is_emergency || p.visit_status === 'emergency';
+                const isVip = p.is_vip || p.visit_status === 'vip';
+                
+                return `<div class="patient-item ${isEmergency ? 'emergency' : ''} ${isVip ? 'vip' : ''} ${currentPatient === p.patient_id ? 'active' : ''}" 
+                    data-patient-id="${p.patient_id}" onclick="selectPatient('${p.patient_id}')">
+                    <div class="patient-header">
+                        <div class="patient-name-section">
+                            <span class="patient-name">${p.name || '未知'}</span>
+                            <div class="patient-tags">
+                                ${isEmergency ? '<span class="patient-tag tag-emergency">急诊</span>' : ''}
+                                ${isVip ? '<span class="patient-tag tag-vip">VIP</span>' : ''}
+                            </div>
+                        </div>
+                        <span class="patient-queue">${p.queue_no || '--'}</span>
+                    </div>
+                    <div class="patient-info-row">
+                        <span>${p.gender || '-'}</span>
+                        <span>${p.age || '-'}岁</span>
+                        <span>序号:${p.visit_sequence || '-'}</span>
+                    </div>
+                    <div class="patient-doctor">医生：<span>${p.attending_doctor || '-'}</span> · ${p.room || '-'}</div>
+                    <div class="patient-status-bar">
+                        <span class="status-badge status-${p.visit_status}">
+                            <span class="status-dot" style="background: ${statusCfg.color}"></span>
+                            ${statusCfg.name}
+                        </span>
+                        <span class="patient-time">${p.register_time ? formatTime(p.register_time) : ''}</span>
+                    </div>
+                </div>`;
             }).join('');
         }
         
         function updateStats(summary) {
-            document.getElementById('statTotal').textContent = summary.total;
-            document.getElementById('statNotReg').textContent = summary.not_registered;
-            document.getElementById('statReg').textContent = summary.registered;
-            document.getElementById('statNotArr').textContent = summary.registered_not_arrived;
-            document.getElementById('statArr').textContent = summary.registered_arrived;
-            document.getElementById('statTreat').textContent = summary.in_treatment;
-            document.getElementById('statDone').textContent = summary.completed;
+            document.getElementById('statTotal').textContent = summary.total || 0;
+            document.getElementById('statNotReg').textContent = summary.not_registered || 0;
+            document.getElementById('statReg').textContent = summary.registered || 0;
+            document.getElementById('statNotArr').textContent = summary.registered_not_arrived || 0;
+            document.getElementById('statArr').textContent = summary.registered_arrived || 0;
+            document.getElementById('statTreat').textContent = summary.in_treatment || 0;
+            document.getElementById('statDone').textContent = summary.completed || 0;
         }
         
+        function updateDoctorCounts() {
+            // 更新全部医生计数
+            document.getElementById('countAll').textContent = patientsData.length;
+            
+            // 更新各医生计数
+            doctorsData.forEach(doc => {
+                const count = patientsData.filter(p => p.doctor_id === doc.doctor_id).length;
+                const countEl = document.getElementById(`count${doc.doctor_id}`);
+                if (countEl) countEl.textContent = count;
+            });
+        }
+        
+        // ============ 患者详情 ============
         async function selectPatient(patientId) {
             currentPatient = patientId;
             document.querySelectorAll('.patient-item').forEach(item => {
                 item.classList.toggle('active', item.dataset.patientId === patientId);
             });
-            const patient = patientsData.find(p => p.patient_id === patientId) || LOCAL_PATIENTS.find(p => p.patient_id === patientId);
+            
+            const patient = patientsData.find(p => p.patient_id === patientId);
             if (patient) {
                 renderPatientDetail(patient);
                 renderTimeline(patient);
             }
-            if (useLocalData) {
-                ordersData = LOCAL_ORDERS[patientId] || [];
-                appsData = LOCAL_APPLICATIONS[patientId] || [];
-                renderOrders(ordersData);
-                renderApplications(appsData);
-                document.getElementById('ordersBadge').textContent = ordersData.length;
-                document.getElementById('appsBadge').textContent = appsData.length;
-                updateConsumableAlert(ordersData);
-            } else {
-                await Promise.all([loadOrders(patientId), loadApplications(patientId)]);
-            }
         }
         
         function renderPatientDetail(patient) {
-            document.getElementById('detailName').textContent = patient.name;
-            document.getElementById('detailTags').innerHTML = `${patient.is_emergency ? '<span class="detail-tag" style="background: #fff1f0; color: #f5222d;">急诊</span>' : ''}${patient.is_vip ? '<span class="detail-tag" style="background: #fffbe6; color: #faad14;">VIP</span>' : ''}<span class="detail-tag" style="background: #e6f7ff; color: #1890ff;">${patient.queue_no || '未取号'}</span><span class="detail-tag" style="background: #f6ffed; color: #52c41a;">${patient.visit_status_name}</span>`;
-            // V5: 显示就诊卡号和就诊序号
-            document.getElementById('detailInfoGrid').innerHTML = `<div class="detail-info-item"><span class="detail-info-label">就诊卡号</span><span class="detail-info-value">${patient.card_no || '-'}</span></div><div class="detail-info-item"><span class="detail-info-label">就诊序号</span><span class="detail-info-value">${patient.visit_sequence || '-'}</span></div><div class="detail-info-item"><span class="detail-info-label">性别</span><span class="detail-info-value">${patient.gender}</span></div><div class="detail-info-item"><span class="detail-info-label">年龄</span><span class="detail-info-value">${patient.age}岁</span></div><div class="detail-info-item"><span class="detail-info-label">门诊号</span><span class="detail-info-value">${patient.patient_no}</span></div><div class="detail-info-item"><span class="detail-info-label">主管医生</span><span class="detail-info-value">${patient.attending_doctor}</span></div><div class="detail-info-item"><span class="detail-info-label">诊室</span><span class="detail-info-value">${patient.room}</span></div><div class="detail-info-item"><span class="detail-info-label">就诊日期</span><span class="detail-info-value">${patient.admission_date}</span></div><div class="detail-info-item" style="grid-column: span 4;"><span class="detail-info-label">诊断</span><span class="detail-info-value">${patient.diagnosis}</span></div>`;
+            const isEmergency = patient.is_emergency || patient.visit_status === 'emergency';
+            const isVip = patient.is_vip || patient.visit_status === 'vip';
+            
+            document.getElementById('detailName').textContent = patient.name || '未知';
+            document.getElementById('detailTags').innerHTML = `
+                ${isEmergency ? '<span class="detail-tag" style="background: #fff1f0; color: #f5222d;">急诊</span>' : ''}
+                ${isVip ? '<span class="detail-tag" style="background: #fffbe6; color: #faad14;">VIP</span>' : ''}
+                <span class="detail-tag" style="background: #e6f7ff; color: #1890ff;">${patient.queue_no || '未取号'}</span>
+                <span class="detail-tag" style="background: #f6ffed; color: #52c41a;">${STATUS_CONFIG[patient.visit_status]?.name || '未知'}</span>
+            `;
+            
+            document.getElementById('detailInfoGrid').innerHTML = `
+                <div class="detail-info-item">
+                    <span class="detail-info-label">就诊卡号</span>
+                    <span class="detail-info-value">${patient.card_no || '-'}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">就诊序号</span>
+                    <span class="detail-info-value">${patient.visit_sequence || '-'}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">性别</span>
+                    <span class="detail-info-value">${patient.gender || '-'}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">年龄</span>
+                    <span class="detail-info-value">${patient.age || '-'}岁</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">门诊号</span>
+                    <span class="detail-info-value">${patient.patient_no || '-'}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">主管医生</span>
+                    <span class="detail-info-value">${patient.attending_doctor || '-'}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">诊室</span>
+                    <span class="detail-info-value">${patient.room || '-'}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">就诊日期</span>
+                    <span class="detail-info-value">${patient.admission_date || '-'}</span>
+                </div>
+                <div class="detail-info-item" style="grid-column: span 4;">
+                    <span class="detail-info-label">诊断</span>
+                    <span class="detail-info-value">${patient.diagnosis || '-'}</span>
+                </div>
+            `;
+            
             document.getElementById('patientDetailCard').style.display = 'block';
         }
         
         function renderTimeline(patient) {
             const container = document.getElementById('timelineContent');
             const items = [];
-            if (patient.register_time) items.push({ icon: '📋', color: '#1890ff', title: '患者取号', time: patient.register_time, desc: `排队号：${patient.queue_no}` });
-            if (patient.arrive_time) items.push({ icon: '✅', color: '#52c41a', title: '患者报到', time: patient.arrive_time, desc: '已到诊区等候' });
-            if (patient.call_time) items.push({ icon: '👨‍⚕️', color: '#faad14', title: '开始就诊', time: patient.call_time, desc: `医生：${patient.attending_doctor}` });
-            if (patient.complete_time) items.push({ icon: '✔️', color: '#13c2c2', title: '就诊完成', time: patient.complete_time, desc: '诊疗结束' });
+            
+            if (patient.register_time) items.push({ 
+                icon: '📋', color: '#1890ff', title: '患者取号', 
+                time: patient.register_time, desc: `排队号：${patient.queue_no || '--'}` 
+            });
+            if (patient.arrive_time) items.push({ 
+                icon: '✅', color: '#52c41a', title: '患者报到', 
+                time: patient.arrive_time, desc: '已到诊区等候' 
+            });
+            if (patient.call_time) items.push({ 
+                icon: '👨‍⚕️', color: '#faad14', title: '开始就诊', 
+                time: patient.call_time, desc: `医生：${patient.attending_doctor || '--'}` 
+            });
+            if (patient.complete_time) items.push({ 
+                icon: '✔️', color: '#13c2c2', title: '就诊完成', 
+                time: patient.complete_time, desc: '诊疗结束' 
+            });
+            
             if (items.length === 0) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏱️</div><div>暂无就诊记录</div></div>';
                 return;
             }
-            container.innerHTML = items.map(item => `<div class="timeline-item"><div class="timeline-dot" style="background: ${item.color}; color: white;">${item.icon}</div><div class="timeline-content"><div class="timeline-title">${item.title}</div><div class="timeline-time">${formatDateTime(item.time)}</div><div style="font-size: 12px; color: #8c8c8c; margin-top: 4px;">${item.desc}</div></div></div>`).join('');
-        }
-        
-        async function loadOrders(patientId) {
-            try {
-                const res = await fetch(`${API_BASE}/api/v5/orders/patient/${patientId}`);
-                const result = await res.json();
-                if (result.success) {
-                    ordersData = result.data.orders;
-                    renderOrders(ordersData);
-                    document.getElementById('ordersBadge').textContent = ordersData.length;
-                    updateConsumableAlert(ordersData);
-                }
-            } catch (e) {
-                console.error('加载医嘱失败:', e);
-            }
-        }
-        
-        function updateConsumableAlert(orders) {
-            const pendingConsumables = orders.filter(o => o.is_consumable && !o.consumable_scanned && o.payment_status === '已交费');
-            const alertEl = document.getElementById('consumableAlert');
-            if (pendingConsumables.length > 0) {
-                document.getElementById('consumableCount').textContent = pendingConsumables.length;
-                alertEl.style.display = 'flex';
-            } else {
-                alertEl.style.display = 'none';
-            }
-        }
-        
-        function renderOrders(orders) {
-            const tbody = document.getElementById('ordersTableBody');
-            if (orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-state-icon">📋</div><div>暂无医嘱</div></td></tr>';
-                return;
-            }
-            tbody.innerHTML = orders.map((order, index) => {
-                const isConsumable = order.is_consumable;
-                const typeClass = ORDER_TYPE_STYLES[order.order_type] || 'type-western';
-                const consumableBadge = isConsumable ? `<span class="consumable-badge ${order.consumable_scanned ? 'consumable-scanned' : (order.payment_status === '已交费' ? 'consumable-pending' : 'consumable-unpaid')}">📦 ${order.consumable_scanned ? '已扫码' : (order.payment_status === '已交费' ? '待扫码' : '待交费')}</span>` : '';
-                const scanBtn = (isConsumable && order.payment_status === '已交费' && !order.consumable_scanned) ? `<button class="btn-scan" onclick="openScanModal('${order.order_id}', '${order.items.map(i => i.item_name).join('、')}')">扫码</button>` : (isConsumable && order.consumable_scanned) ? `<button class="btn-scan btn-scanned" disabled>✓ 已确认</button>` : '-';
-                return `<tr><td>${index + 1}</td><td><span class="status-tag ${typeClass}">${order.order_type}</span></td><td>${order.items.map(i => i.item_name).join('、')} ${consumableBadge}</td><td>${order.doctor_name}</td><td><span class="status-tag ${order.priority === '紧急' ? 'priority-urgent' : 'priority-normal'}">${order.priority}</span></td><td>${order.payment_status || '-'}</td><td>${order.status}</td><td>${scanBtn}</td></tr>`;
-            }).join('');
-        }
-        
-        function openScanModal(orderId, consumableName) {
-            currentScanOrder = orderId;
-            const patient = patientsData.find(p => p.patient_id === currentPatient) || LOCAL_PATIENTS.find(p => p.patient_id === currentPatient);
-            document.getElementById('scanPatientName').textContent = patient ? patient.name : '--';
-            document.getElementById('scanConsumableName').textContent = consumableName;
-            document.getElementById('barcodeInput').value = '';
-            document.getElementById('scanModal').classList.add('active');
-            setTimeout(() => document.getElementById('barcodeInput').focus(), 100);
-        }
-        
-        function closeScanModal() {
-            document.getElementById('scanModal').classList.remove('active');
-            currentScanOrder = null;
-        }
-        
-        async function confirmScan() {
-            const barcode = document.getElementById('barcodeInput').value.trim();
-            if (!barcode) { alert('请输入或扫描条码'); return; }
             
-            if (useLocalData) {
-                // 本地模式：直接更新本地数据
-                for (let pid in LOCAL_ORDERS) {
-                    const order = LOCAL_ORDERS[pid].find(o => o.order_id === currentScanOrder);
-                    if (order && order.is_consumable) {
-                        order.consumable_scanned = true;
-                        order.consumable_barcode = barcode;
-                        order.scan_time = new Date().toISOString();
-                        order.scanner_nurse = '李护士';
-                        order.status = '已扫码';
-                        break;
-                    }
-                }
-                alert('✅ 耗材扫码确认成功！');
-                closeScanModal();
-                ordersData = LOCAL_ORDERS[currentPatient] || [];
-                renderOrders(ordersData);
-                updateConsumableAlert(ordersData);
+            container.innerHTML = items.map(item => `
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: ${item.color}; color: white;">${item.icon}</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">${item.title}</div>
+                        <div class="timeline-time">${formatDateTime(item.time)}</div>
+                        <div style="font-size: 12px; color: #8c8c8c; margin-top: 4px;">${item.desc}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // ============ 搜索功能 ============
+        function searchPatients() {
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            if (!keyword) {
+                renderPatientList(patientsData);
                 return;
             }
             
-            try {
-                const res = await fetch(`${API_BASE}/api/v5/orders/scan-consumable`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order_id: currentScanOrder, barcode: barcode, nurse_name: '李护士' })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    alert('✅ 耗材扫码确认成功！');
-                    closeScanModal();
-                    loadOrders(currentPatient);
-                } else {
-                    alert('❌ ' + result.error);
-                }
-            } catch (e) {
-                alert('扫码确认失败，请重试');
-            }
+            const filtered = patientsData.filter(p => 
+                (p.name && p.name.toLowerCase().includes(keyword)) ||
+                (p.card_no && p.card_no.includes(keyword)) ||
+                (p.patient_no && p.patient_no.includes(keyword))
+            );
+            renderPatientList(filtered);
         }
         
-        async function loadApplications(patientId) {
-            try {
-                const res = await fetch(`${API_BASE}/api/v5/applications/patient/${patientId}`);
-                const result = await res.json();
-                if (result.success) {
-                    appsData = result.data.applications;
-                    renderApplications(appsData);
-                    document.getElementById('appsBadge').textContent = appsData.length;
-                }
-            } catch (e) {
-                console.error('加载申请单失败:', e);
-            }
-        }
-        
-        function renderApplications(apps) {
-            const tbody = document.getElementById('appsTableBody');
-            if (apps.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-state-icon">📝</div><div>暂无申请单</div></td></tr>';
-                return;
-            }
-            tbody.innerHTML = apps.map((app, index) => `<tr><td>${index + 1}</td><td>${app.app_no}</td><td>${app.app_type}</td><td>${app.items.map(i => i.item_name).join('、')}</td><td>${app.target_dept}</td><td>${app.doctor_name}</td><td>${app.schedule_time ? formatDateTime(app.schedule_time) : '-'}</td><td>${app.status}</td></tr>`).join('');
-        }
-        
+        // ============ 事件监听 ============
         function setupEventListeners() {
+            // 状态筛选
             document.querySelectorAll('.status-chip').forEach(chip => {
-                chip.addEventListener('click', function() {
+                chip.addEventListener('click', () => {
                     document.querySelectorAll('.status-chip').forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-                    currentStatus = this.dataset.status;
-                    if (useLocalData) {
-                        const filtered = currentStatus ? LOCAL_PATIENTS.filter(p => p.visit_status === currentStatus) : LOCAL_PATIENTS;
-                        renderPatientList(filtered);
-                    } else {
-                        loadPatients();
-                    }
+                    chip.classList.add('active');
+                    currentStatus = chip.dataset.status;
+                    loadPatients();
                 });
             });
+            
+            // 统计卡片点击
             document.querySelectorAll('.stat-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const filter = this.dataset.filter;
+                card.addEventListener('click', () => {
                     document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
+                    card.classList.add('active');
+                    const filter = card.dataset.filter;
                     if (filter === 'all') {
                         currentStatus = '';
-                        document.querySelectorAll('.status-chip').forEach(c => c.classList.remove('active'));
-                        document.querySelector('[data-status=""]').classList.add('active');
+                    } else if (filter === 'registered') {
+                        // 显示已取号的所有状态
+                        currentStatus = '';
                     } else {
                         currentStatus = filter;
-                        document.querySelectorAll('.status-chip').forEach(c => c.classList.remove('active'));
-                        const target = document.querySelector(`[data-status="${filter}"]`);
-                        if (target) target.classList.add('active');
                     }
-                    if (useLocalData) {
-                        let filtered = LOCAL_PATIENTS;
-                        if (currentDoctor) filtered = filtered.filter(p => p.doctor_id === currentDoctor);
-                        if (currentStatus) filtered = filtered.filter(p => p.visit_status === currentStatus);
-                        renderPatientList(filtered);
-                    } else {
-                        loadPatients();
-                    }
+                    // 更新状态筛选按钮
+                    document.querySelectorAll('.status-chip').forEach(c => {
+                        c.classList.toggle('active', c.dataset.status === currentStatus);
+                    });
+                    loadPatients();
                 });
             });
-            document.querySelectorAll('.tab-item').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const tabName = this.dataset.tab;
-                    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-                    document.getElementById(`${tabName}Tab`).style.display = 'block';
-                });
-            });
-            document.getElementById('patientSearch').addEventListener('input', function() {
-                const keyword = this.value.toLowerCase();
-                const source = useLocalData ? LOCAL_PATIENTS : patientsData;
-                const filtered = source.filter(p => p.name.toLowerCase().includes(keyword) || p.patient_no.includes(keyword) || (p.card_no && p.card_no.includes(keyword)));
-                renderPatientList(filtered);
-            });
-            document.getElementById('orderTypeFilter').addEventListener('change', filterOrders);
-            document.getElementById('orderStatusFilter').addEventListener('change', filterOrders);
-            document.getElementById('appTypeFilter').addEventListener('change', filterApplications);
-            document.getElementById('appStatusFilter').addEventListener('change', filterApplications);
-            document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') confirmScan();
-            });
         }
         
-        function filterOrders() {
-            const typeFilter = document.getElementById('orderTypeFilter').value;
-            const statusFilter = document.getElementById('orderStatusFilter').value;
-            let filtered = ordersData;
-            if (typeFilter) filtered = filtered.filter(o => o.order_type === typeFilter);
-            if (statusFilter) filtered = filtered.filter(o => o.status === statusFilter);
-            renderOrders(filtered);
+        // ============ 工具函数 ============
+        function formatTime(timeStr) {
+            if (!timeStr) return '';
+            const date = new Date(timeStr);
+            return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
         }
         
-        function filterApplications() {
-            const typeFilter = document.getElementById('appTypeFilter').value;
-            const statusFilter = document.getElementById('appStatusFilter').value;
-            let filtered = appsData;
-            if (typeFilter) filtered = filtered.filter(a => a.app_type === typeFilter);
-            if (statusFilter) filtered = filtered.filter(a => a.status === statusFilter);
-            renderApplications(filtered);
+        function formatDateTime(timeStr) {
+            if (!timeStr) return '';
+            const date = new Date(timeStr);
+            return date.toLocaleString('zh-CN', { 
+                month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' 
+            });
         }
-        
-        function refreshOrders() { if (currentPatient) selectPatient(currentPatient); }
-        function refreshApplications() { if (currentPatient) selectPatient(currentPatient); }
-        
-        function formatTime(dt) { return dt ? new Date(dt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : ''; }
-        function formatDateTime(dt) { return dt ? new Date(dt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'; }
     </script>
 </body>
 </html>

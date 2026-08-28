@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class HISWebAPIAdapter:
     """HIS WebAPI适配器 - 用于对接HIS的G0076等接口"""
-    
+
     def __init__(self, base_url: str, meskey: str, timeout: int = 30):
         """
         初始化HIS WebAPI适配器
@@ -33,20 +33,20 @@ class HISWebAPIAdapter:
         self.meskey = meskey
         self.timeout = timeout
         self.session = requests.Session()
-        
+
         # 设置请求头
         self.headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
-        
+
         # 缓存
         self._cache = {}
         self._cache_lock = threading.Lock()
         self._cache_ttl = 300  # 默认缓存5分钟
-        
+
         logger.info(f"HIS WebAPI适配器初始化完成，目标: {base_url}")
-    
+
     def _generate_mesid(self) -> str:
         """
         生成消息ID
@@ -58,7 +58,7 @@ class HISWebAPIAdapter:
         now = datetime.now()
         # 格式: 年月日时分秒 + 6位微秒
         return now.strftime("%Y%m%d%H%M%S") + f"{now.microsecond:06d}"
-    
+
     def _encode_base64(self, data: Dict) -> str:
         """
         BASE64编码
@@ -76,8 +76,8 @@ class HISWebAPIAdapter:
         json_str = json_str.replace('\n', '\r\n')
         encoded = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
         return encoded
-    
-    def _decode_base64(self, encoded_str: str) -> Dict:
+
+    def _decode_base64(self, encoded_str: str) -> Optional[Dict]:
         """
         BASE64解码
         将BASE64字符串解码为字典
@@ -86,18 +86,18 @@ class HISWebAPIAdapter:
             encoded_str: BASE64编码的字符串
             
         Returns:
-            解码后的字典
+            解码后的字典，失败返回None
         """
         if not encoded_str:
-            return {}
-        
+            return None
+
         try:
             decoded = base64.b64decode(encoded_str).decode('utf-8')
             return json.loads(decoded)
         except Exception as e:
             logger.warning(f"BASE64解码失败: {e}")
-            return {}
-    
+            return None
+
     def _build_request_payload(self, service_code: str, list_params: List[Dict], use_encryption: bool = False) -> Dict:
         """
         构建请求消息体
@@ -111,7 +111,7 @@ class HISWebAPIAdapter:
             请求消息体字典
         """
         mesid = self._generate_mesid()
-        
+
         if use_encryption:
             # 使用BASE64加密方式（INDATA）
             # 内层数据：完整的请求体
@@ -122,13 +122,13 @@ class HISWebAPIAdapter:
                 "LIST": list_params,
                 "INDATA": ""
             }
-            
-            # 外层数据：LIST置为空对象，INDATA为加密后的内层数据
+
+            # 外层数据：LIST置为包含空对象的列表，INDATA为加密后的内层数据
             return {
                 "MESKEY": self.meskey,
                 "MESID": mesid,
                 "MESTYPE": service_code,
-                "LIST": [{}],  # 空对象
+                "LIST": [{}],  # 包含一个空对象的列表（HIS要求）
                 "INDATA": self._encode_base64(inner_data)
             }
         else:
@@ -140,7 +140,7 @@ class HISWebAPIAdapter:
                 "LIST": list_params,
                 "INDATA": ""
             }
-    
+
     def _request(self, service_code: str, list_params: List[Dict], use_encryption: bool = False) -> Dict:
         """
         发送HTTP请求到HIS接口
@@ -155,9 +155,9 @@ class HISWebAPIAdapter:
         """
         url = f"{self.base_url}/api/HisInterface/HisRequst"
         payload = self._build_request_payload(service_code, list_params, use_encryption)
-        
+
         logger.debug(f"HIS请求 [{service_code}]: {json.dumps(payload, ensure_ascii=False)}")
-        
+
         try:
             response = self.session.post(
                 url=url,
@@ -166,16 +166,21 @@ class HISWebAPIAdapter:
                 timeout=self.timeout
             )
             response.raise_for_status()
+
+            # 记录原始响应内容用于调试
+            raw_text = response.text
+            logger.debug(f"HIS原始响应 [{service_code}]: {raw_text[:500]}")
+
             result = response.json()
-            
+
             # 检查响应中是否有加密的DATA字段，如有则解密
             encrypted_data = result.get("DATA")
             if encrypted_data and isinstance(encrypted_data, str):
                 try:
                     decrypted_data = self._decode_base64(encrypted_data)
-                    if decrypted_data:
-                        # 解密后的数据格式: {"OUDATA": [...]}
-                        if "MES" not in result:
+                    if decrypted_data is not None:
+                        # 确保result中有MES字段
+                        if result.get("MES") is None:
                             result["MES"] = {}
                         # 将解密后的OUDATA放入MES
                         if isinstance(decrypted_data, dict) and "OUDATA" in decrypted_data:
@@ -187,10 +192,10 @@ class HISWebAPIAdapter:
                         logger.debug(f"DATA字段解密成功")
                 except Exception as e:
                     logger.warning(f"DATA字段解密失败: {e}")
-            
+
             logger.debug(f"HIS响应 [{service_code}]: {json.dumps(result, ensure_ascii=False)}")
             return result
-            
+
         except requests.exceptions.Timeout:
             logger.error(f"HIS请求超时: {url}")
             raise HISConnectionError("HIS服务连接超时")
@@ -203,8 +208,8 @@ class HISWebAPIAdapter:
         except Exception as e:
             logger.error(f"HIS请求异常: {str(e)}")
             raise HISAdapterError(f"HIS请求失败: {str(e)}")
-    
-    def _check_response(self, response: Dict) -> Tuple[bool, str, Dict]:
+
+    def _check_response(self, response: Dict) -> Tuple[bool, str, Optional[Dict]]:
         """
         检查HIS响应状态
         
@@ -214,23 +219,26 @@ class HISWebAPIAdapter:
         Returns:
             (是否成功, 消息, 数据)
         """
+        if not response or not isinstance(response, dict):
+            return False, "响应格式错误", None
+
         code = response.get("CODE", "-1")
         message = response.get("MESSAGE", "未知错误")
-        data = response.get("MES", {})
-        
+        data = response.get("MES") or {}
+
         if code == "1":
             return True, message, data
         else:
             return False, message, data
-    
+
     # ============ 缓存管理 ============
-    
+
     def _get_cache_key(self, prefix: str, **params) -> str:
         """生成缓存键"""
         sorted_params = sorted(params.items())
         param_str = '&'.join([f"{k}={v}" for k, v in sorted_params])
         return f"{prefix}:{param_str}"
-    
+
     def _get_cached(self, key: str) -> Optional[Dict]:
         """获取缓存数据"""
         with self._cache_lock:
@@ -242,27 +250,27 @@ class HISWebAPIAdapter:
                 else:
                     del self._cache[key]
         return None
-    
+
     def _set_cache(self, key: str, data: Dict, ttl: int = None):
         """设置缓存数据"""
         ttl = ttl or self._cache_ttl
         with self._cache_lock:
             self._cache[key] = (data, datetime.now() + __import__('datetime').timedelta(seconds=ttl))
-    
+
     def clear_cache(self):
         """清除所有缓存"""
         with self._cache_lock:
             self._cache.clear()
         logger.info("HIS缓存已清除")
-    
+
     # ============ G0076 门诊护士获取医生信息 ============
-    
+
     def get_doctors(
-        self, 
-        ono: int = 1, 
-        eno: int = 50,
-        use_cache: bool = True,
-        use_encryption: bool = False
+            self,
+            ono: int = 1,
+            eno: int = 50,
+            use_cache: bool = True,
+            use_encryption: bool = False
     ) -> Dict:
         """
         获取医生信息（G0076接口）
@@ -300,30 +308,31 @@ class HISWebAPIAdapter:
         # 参数校验
         if eno - ono > 50:
             raise ValueError("每次查询范围不可超过50条记录")
-        
+
         if ono < 1:
             raise ValueError("开始序号必须大于等于1")
-        
+
         # 缓存检查
         cache_key = self._get_cache_key('G0076_doctors', ono=ono, eno=eno, encrypted=use_encryption)
         if use_cache:
             cached = self._get_cached(cache_key)
             if cached:
                 return cached
-        
+
         # 构建查询参数
         list_params = [{
             "ONO": str(ono),
             "ENO": str(eno)
         }]
-        
+
         try:
             # 发送请求（根据use_encryption决定是否加密）
+            # 注意：文档中服务编码写的是 G0012，但示例和实际使用的是 G0076
             response = self._request("G0076", list_params, use_encryption=use_encryption)
-            
+
             # 检查响应
             success, message, data = self._check_response(response)
-            
+
             if not success:
                 logger.error(f"G0076接口返回错误: {message}")
                 return {
@@ -332,23 +341,23 @@ class HISWebAPIAdapter:
                     "total_count": 0,
                     "doctors": []
                 }
-            
+
             # 提取医生数据
-            oudata = data.get("OUDATA", [])
-            
+            oudata = data.get("OUDATA", []) if data else []
+
             result = {
                 "success": True,
                 "message": message,
                 "total_count": len(oudata),
                 "doctors": oudata
             }
-            
+
             # 缓存结果
             if use_cache:
                 self._set_cache(cache_key, result, ttl=300)  # 缓存5分钟
-            
+
             return result
-            
+
         except HISAdapterError as e:
             logger.error(f"获取医生信息失败: {e}")
             return {
@@ -357,7 +366,7 @@ class HISWebAPIAdapter:
                 "total_count": 0,
                 "doctors": []
             }
-    
+
     def get_all_doctors(self, batch_size: int = 50, use_encryption: bool = False) -> Dict:
         """
         获取所有医生信息（自动分页）
@@ -376,30 +385,30 @@ class HISWebAPIAdapter:
         """
         all_doctors = []
         ono = 1
-        
+
         while True:
             eno = ono + batch_size - 1
             result = self.get_doctors(ono=ono, eno=eno, use_cache=False, use_encryption=use_encryption)
-            
+
             if not result.get("success"):
                 return result
-            
+
             doctors = result.get("doctors", [])
             all_doctors.extend(doctors)
-            
+
             # 如果返回数量小于批次大小，说明已经取完
             if len(doctors) < batch_size:
                 break
-            
+
             ono += batch_size
-        
+
         return {
             "success": True,
             "message": "获取成功",
             "total_count": len(all_doctors),
             "doctors": all_doctors
         }
-    
+
     def get_doctors_by_dept(self, dept_code: str = None, dept_name: str = None, use_encryption: bool = False) -> Dict:
         """
         根据科室筛选医生
@@ -413,12 +422,12 @@ class HISWebAPIAdapter:
             筛选后的医生列表
         """
         result = self.get_all_doctors(use_encryption=use_encryption)
-        
+
         if not result.get("success"):
             return result
-        
+
         doctors = result.get("doctors", [])
-        
+
         # 筛选
         filtered = []
         for doc in doctors:
@@ -428,15 +437,15 @@ class HISWebAPIAdapter:
                 filtered.append(doc)
             elif not dept_code and not dept_name:
                 filtered.append(doc)
-        
+
         return {
             "success": True,
             "message": "筛选成功",
             "total_count": len(filtered),
             "doctors": filtered
         }
-    
-    def sync_doctors_to_db(self, db_connection) -> Dict:
+
+    def sync_doctors_to_db(self, db_connection, use_encryption=False) -> Dict:
         """
         将HIS医生信息同步到本地数据库
         
@@ -447,34 +456,34 @@ class HISWebAPIAdapter:
             同步结果
         """
         from datetime import datetime
-        
+
         # 获取所有医生
-        result = self.get_all_doctors()
-        
+        result = self.get_all_doctors(use_encryption=use_encryption)
+
         if not result.get("success"):
             return result
-        
+
         doctors = result.get("doctors", [])
-        
+
         try:
             cursor = db_connection.cursor()
-            
+
             # 先标记所有医生为未更新
             cursor.execute("UPDATE doctors SET sync_status = 0")
-            
+
             sync_count = 0
             update_count = 0
-            
+
             for doc in doctors:
                 doctor_id = doc.get("DOCTOR_ID")
-                
+
                 # 检查医生是否已存在
                 cursor.execute(
                     "SELECT doctor_id FROM doctors WHERE doctor_id = %s",
                     (doctor_id,)
                 )
                 existing = cursor.fetchone()
-                
+
                 if existing:
                     # 更新现有医生
                     cursor.execute("""
@@ -538,13 +547,13 @@ class HISWebAPIAdapter:
                         datetime.now()
                     ))
                     sync_count += 1
-            
+
             # 删除未更新的医生（已不在HIS中的）
             cursor.execute("DELETE FROM doctors WHERE sync_status = 0")
             delete_count = cursor.rowcount
-            
+
             db_connection.commit()
-            
+
             return {
                 "success": True,
                 "message": "同步成功",
@@ -553,7 +562,7 @@ class HISWebAPIAdapter:
                 "deleted": delete_count,
                 "total": len(doctors)
             }
-            
+
         except Exception as e:
             db_connection.rollback()
             logger.error(f"同步医生数据到数据库失败: {e}")
@@ -565,7 +574,7 @@ class HISWebAPIAdapter:
                 "deleted": 0,
                 "total": 0
             }
-    
+
     def health_check(self) -> Dict:
         """
         健康检查 - 测试G0076接口连通性
@@ -576,7 +585,7 @@ class HISWebAPIAdapter:
         try:
             # 尝试获取第一条医生记录
             result = self.get_doctors(ono=1, eno=1, use_cache=False)
-            
+
             if result.get("success"):
                 return {
                     "success": True,
@@ -591,7 +600,7 @@ class HISWebAPIAdapter:
                     "message": result.get("message", "HIS接口返回错误"),
                     "timestamp": datetime.now().isoformat()
                 }
-                
+
         except Exception as e:
             return {
                 "success": False,
@@ -621,6 +630,7 @@ class HISResponseError(HISAdapterError):
 # ============ 单例模式 ============
 
 _his_webapi_adapter = None
+
 
 def get_his_webapi_adapter(base_url: str = None, meskey: str = None, timeout: int = 30) -> HISWebAPIAdapter:
     """
