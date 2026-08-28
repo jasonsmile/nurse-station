@@ -13,6 +13,7 @@ clinical-workstation-release/
 ├── backend/               # 主应用 Python 源码
 ├── Dockerfile             # 主应用镜像构建文件
 ├── compose.host.yml       # CentOS 宿主机启动文件
+├── app.env.example        # 可提交的环境变量模板
 ├── app.env                # 运行环境变量；不得打入镜像或提交
 └── his-sync/              # 单独的 HIS 手工同步镜像
 ```
@@ -59,11 +60,21 @@ app.env
 /etc/nginx/conf.d/nurse-station.conf
 ```
 
+### 环境变量文件
+
+Git 中只提交 `app.env.example`，其中不含密码、HIS 地址、HIS 标识、令牌或密钥。部署时在 Windows 或宿主机复制模板并填写真实配置：
+
+```bash
+cp app.env.example app.env
+```
+
 `app.env` 中的 `DB_HOST` 必须为 `127.0.0.1`；文件包含敏感配置，宿主机建议设置为仅 root 可读：
 
 ```bash
 chmod 600 /opt/nurse-station/deploy/app.env
 ```
+
+不要执行 `git add -f app.env`，也不要将密码、HIS 地址、MESKEY、Token 或 `SECRET_KEY` 写入 README、Dockerfile、Compose 文件和源码。
 
 ## 3. 加载并启动主应用
 
