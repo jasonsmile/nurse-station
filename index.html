@@ -5,406 +5,909 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CVOnto 护士站 - 门诊分诊系统</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; line-height: 1.6; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
         /* 登录页面 */
-        .login-container { display: flex; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%); }
-        .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); width: 400px; }
-        .login-header { text-align: center; margin-bottom: 30px; }
-        .login-header h1 { font-size: 24px; color: #262626; margin-bottom: 8px; }
-        .login-header p { font-size: 14px; color: #8c8c8c; }
-        .login-form { display: flex; flex-direction: column; gap: 20px; }
-        .form-item { display: flex; flex-direction: column; gap: 8px; }
-        .form-item label { font-size: 14px; color: #595959; font-weight: 500; }
-        .form-item input { padding: 12px; border: 2px solid #d9d9d9; border-radius: 6px; font-size: 14px; transition: all 0.3s; }
-        .form-item input:focus { outline: none; border-color: #1890ff; }
-        .login-btn { background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%); color: white; border: none; padding: 12px; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.3s; }
-        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(24,144,255,0.3); }
-        .login-btn:disabled { background: #d9d9d9; cursor: not-allowed; transform: none; }
-        .error-message { background: #fff1f0; color: #f5222d; padding: 10px; border-radius: 6px; font-size: 13px; display: none; }
-        
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h1 {
+            font-size: 24px;
+            color: #262626;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            font-size: 14px;
+            color: #8c8c8c;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-item label {
+            font-size: 14px;
+            color: #595959;
+            font-weight: 500;
+        }
+
+        .form-item input {
+            padding: 12px;
+            border: 2px solid #d9d9d9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-item input:focus {
+            outline: none;
+            border-color: #1890ff;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+        }
+
+        .login-btn:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fff1f0;
+            color: #f5222d;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+
         /* 主页面 */
-        .header { background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%); color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header h1 { font-size: 18px; font-weight: 500; }
-        .header-info { display: flex; align-items: center; gap: 15px; font-size: 13px; }
-        .nurse-info { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; }
-        .logout-btn { background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.3s; }
-        .logout-btn:hover { background: rgba(255,255,255,0.3); }
-        
-        .main-container { display: flex; height: calc(100vh - 60px); }
-        
+        .header {
+            background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+            color: white;
+            padding: 0 20px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 13px;
+        }
+
+        .nurse-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid white;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
         /* 左侧边栏 */
-        .sidebar { width: 320px; background: white; border-right: 1px solid #e8e8e8; display: flex; flex-direction: column; }
-        .dept-info { padding: 12px; border-bottom: 1px solid #e8e8e8; background: #e6f7ff; }
-        .dept-info-title { font-size: 12px; color: #1890ff; font-weight: 500; margin-bottom: 4px; }
-        .dept-info-name { font-size: 16px; color: #262626; font-weight: 600; }
-        
-        .time-filter { padding: 12px; border-bottom: 1px solid #e8e8e8; background: #fafafa; }
-        .time-filter h3 { font-size: 12px; color: #666; margin-bottom: 8px; }
-        .time-buttons { display: flex; gap: 8px; }
-        .time-btn { flex: 1; padding: 8px; border: 2px solid #d9d9d9; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.3s; text-align: center; }
-        .time-btn:hover { border-color: #1890ff; color: #1890ff; }
-        .time-btn.active { background: #1890ff; border-color: #1890ff; color: white; }
-        
-        .doctor-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .section-header { padding: 10px 12px; border-bottom: 1px solid #e8e8e8; background: #fafafa; font-size: 12px; font-weight: 500; color: #262626; display: flex; justify-content: space-between; align-items: center; }
-        .doctor-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .doctor-item { display: flex; align-items: center; padding: 10px; border-radius: 6px; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; background: white; margin-bottom: 6px; }
-        .doctor-item:hover { border-color: #91d5ff; background: #e6f7ff; }
-        .doctor-item.active { border-color: #1890ff; background: #e6f7ff; }
-        .doctor-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #1890ff, #36cfc9); color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; margin-right: 10px; }
-        .doctor-info { flex: 1; }
-        .doctor-name { font-weight: 500; font-size: 14px; color: #262626; }
-        .doctor-title { font-size: 12px; color: #8c8c8c; }
-        .doctor-count { background: #ff4d4f; color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; min-width: 20px; text-align: center; }
-        
-        .patient-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid #e8e8e8; }
-        .patient-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .patient-item { padding: 10px; border-radius: 6px; cursor: pointer; transition: all 0.3s; margin-bottom: 6px; border: 1px solid #e8e8e8; background: white; }
-        .patient-item:hover { border-color: #91d5ff; box-shadow: 0 2px 6px rgba(24,144,255,0.1); }
-        .patient-item.active { border-color: #1890ff; background: #e6f7ff; }
-        .patient-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .patient-name { font-weight: 600; font-size: 14px; color: #262626; }
-        .patient-serial { background: #1890ff; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
-        .patient-info { display: flex; gap: 10px; font-size: 12px; color: #8c8c8c; }
-        
+        .sidebar {
+            width: 320px;
+            background: white;
+            border-right: 1px solid #e8e8e8;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dept-info {
+            padding: 12px;
+            border-bottom: 1px solid #e8e8e8;
+            background: #e6f7ff;
+        }
+
+        .dept-info-title {
+            font-size: 12px;
+            color: #1890ff;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .dept-info-name {
+            font-size: 16px;
+            color: #262626;
+            font-weight: 600;
+        }
+
+        .time-filter {
+            padding: 12px;
+            border-bottom: 1px solid #e8e8e8;
+            background: #fafafa;
+        }
+
+        .time-filter h3 {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .time-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .time-btn {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #d9d9d9;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .time-btn:hover {
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+
+        .time-btn.active {
+            background: #1890ff;
+            border-color: #1890ff;
+            color: white;
+        }
+
+        .doctor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e8e8e8;
+            background: #fafafa;
+            font-size: 12px;
+            font-weight: 500;
+            color: #262626;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .doctor-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .doctor-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+            background: white;
+            margin-bottom: 6px;
+        }
+
+        .doctor-item:hover {
+            border-color: #91d5ff;
+            background: #e6f7ff;
+        }
+
+        .doctor-item.active {
+            border-color: #1890ff;
+            background: #e6f7ff;
+        }
+
+        .doctor-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1890ff, #36cfc9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+
+        .doctor-info {
+            flex: 1;
+        }
+
+        .doctor-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: #262626;
+        }
+
+        .doctor-title {
+            font-size: 12px;
+            color: #8c8c8c;
+        }
+
+        .doctor-count {
+            background: #ff4d4f;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .patient-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .patient-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .patient-item {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 6px;
+            border: 1px solid #e8e8e8;
+            background: white;
+        }
+
+        .patient-item:hover {
+            border-color: #91d5ff;
+            box-shadow: 0 2px 6px rgba(24, 144, 255, 0.1);
+        }
+
+        .patient-item.active {
+            border-color: #1890ff;
+            background: #e6f7ff;
+        }
+
+        .patient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .patient-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #262626;
+        }
+
+        .patient-serial {
+            background: #1890ff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .patient-info {
+            display: flex;
+            gap: 10px;
+            font-size: 12px;
+            color: #8c8c8c;
+        }
+
         /* 右侧内容区 */
-        .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .patient-detail-card { background: white; margin: 12px; padding: 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-        .detail-title { display: flex; align-items: center; gap: 12px; }
-        .detail-name { font-size: 22px; font-weight: 600; color: #262626; }
-        .detail-tags { display: flex; gap: 8px; }
-        .detail-tag { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-        .tag-visit { background: #e6f7ff; color: #1890ff; }
-        .tag-serial { background: #f6ffed; color: #52c41a; }
-        .detail-info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-        .detail-info-item { display: flex; flex-direction: column; }
-        .detail-info-label { font-size: 12px; color: #8c8c8c; margin-bottom: 4px; }
-        .detail-info-value { font-size: 14px; color: #262626; font-weight: 500; }
-        
-        .orders-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; margin: 0 12px 12px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .orders-header { padding: 12px 16px; border-bottom: 1px solid #e8e8e8; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
-        .orders-title { font-size: 14px; font-weight: 500; color: #262626; }
-        .orders-content { flex: 1; overflow: auto; padding: 0; }
-        
-        .order-group { margin-bottom: 16px; }
-        .order-group-header { padding: 10px 16px; background: #f0f0f0; font-size: 13px; font-weight: 500; color: #595959; border-bottom: 1px solid #e8e8e8; display: flex; justify-content: space-between; align-items: center; }
-        .order-group-count { background: #1890ff; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
-        .order-table { width: 100%; border-collapse: collapse; }
-        .order-table th { background: #fafafa; padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 500; color: #262626; border-bottom: 1px solid #e8e8e8; position: sticky; top: 0; z-index: 10; }
-        .order-table td { padding: 10px 12px; font-size: 12px; color: #595959; border-bottom: 1px solid #f0f0f0; }
-        .order-table tr:hover { background: #f6ffed; }
-        
-        .empty-state { text-align: center; padding: 60px 20px; color: #8c8c8c; }
-        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
-        .empty-state-text { font-size: 14px; }
-        
-        .loading { text-align: center; padding: 40px; color: #1890ff; font-size: 14px; }
-        
-        .btn-refresh { background: #1890ff; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        .btn-refresh:hover { background: #40a9ff; }
-        
-        .hidden { display: none !important; }
-        
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .patient-detail-card {
+            background: white;
+            margin: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .detail-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .detail-name {
+            font-size: 22px;
+            font-weight: 600;
+            color: #262626;
+        }
+
+        .detail-tags {
+            display: flex;
+            gap: 8px;
+        }
+
+        .detail-tag {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .tag-visit {
+            background: #e6f7ff;
+            color: #1890ff;
+        }
+
+        .tag-serial {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+
+        .detail-info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .detail-info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-info-label {
+            font-size: 12px;
+            color: #8c8c8c;
+            margin-bottom: 4px;
+        }
+
+        .detail-info-value {
+            font-size: 14px;
+            color: #262626;
+            font-weight: 500;
+        }
+
+        .orders-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin: 0 12px 12px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .orders-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fafafa;
+        }
+
+        .orders-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #262626;
+        }
+
+        .orders-content {
+            flex: 1;
+            overflow: auto;
+            padding: 0;
+        }
+
+        .order-group {
+            margin-bottom: 16px;
+        }
+
+        .order-group-header {
+            padding: 10px 16px;
+            background: #f0f0f0;
+            font-size: 13px;
+            font-weight: 500;
+            color: #595959;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-group-count {
+            background: #1890ff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .order-table th {
+            background: #fafafa;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 500;
+            color: #262626;
+            border-bottom: 1px solid #e8e8e8;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .order-table td {
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #595959;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .order-table tr:hover {
+            background: #f6ffed;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8c8c8c;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #1890ff;
+            font-size: 14px;
+        }
+
+        .btn-refresh {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .btn-refresh:hover {
+            background: #40a9ff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
         /* API状态提示 */
-        .api-status { position: fixed; top: 70px; right: 20px; padding: 10px 15px; border-radius: 6px; font-size: 12px; z-index: 100; display: none; }
-        .api-status.success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; display: block; }
-        .api-status.error { background: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; display: block; }
+        .api-status {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 100;
+            display: none;
+        }
+
+        .api-status.success {
+            background: #f6ffed;
+            color: #52c41a;
+            border: 1px solid #b7eb8f;
+            display: block;
+        }
+
+        .api-status.error {
+            background: #fff1f0;
+            color: #f5222d;
+            border: 1px solid #ffa39e;
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <!-- 登录页面 -->
-    <div id="loginPage" class="login-container">
-        <div class="login-box">
-            <div class="login-header">
-                <h1>🏥 CVOnto 护士站</h1>
-                <p>门诊分诊系统 - 护士登录</p>
-            </div>
-            <div class="error-message" id="errorMessage"></div>
-            <form class="login-form" id="loginForm">
-                <div class="form-item">
-                    <label>护士工号</label>
-                    <input type="text" id="nurseCode" placeholder="请输入工号" required>
-                </div>
-                <div class="form-item">
-                    <label>密码</label>
-                    <input type="password" id="password" placeholder="请输入密码" required>
-                </div>
-                <button type="submit" class="login-btn" id="loginBtn">登 录</button>
-            </form>
+<!-- 登录页面 -->
+<div id="loginPage" class="login-container">
+    <div class="login-box">
+        <div class="login-header">
+            <h1>🏥 CVOnto 护士站</h1>
+            <p>门诊分诊系统 - 护士登录</p>
         </div>
+        <div class="error-message" id="errorMessage"></div>
+        <form class="login-form" id="loginForm">
+            <div class="form-item">
+                <label>护士工号</label>
+                <input type="text" id="nurseCode" placeholder="请输入工号" required>
+            </div>
+            <div class="form-item">
+                <label>密码</label>
+                <input type="password" id="password" placeholder="请输入密码" required>
+            </div>
+            <button type="submit" class="login-btn" id="loginBtn">登 录</button>
+        </form>
     </div>
+</div>
 
-    <!-- 主页面 -->
-    <div id="mainPage" class="hidden">
-        <header class="header">
-            <h1>🏥 CVOnto 护士站 - 门诊分诊系统</h1>
-            <div class="header-info">
-                <div class="nurse-info">
-                    <span>👤 <span id="nurseName">--</span></span>
-                    <span>📍 <span id="nurseDept">--</span></span>
-                </div>
-                <span id="currentTime">--</span>
-                <button class="logout-btn" onclick="logout()">退出登录</button>
+<!-- 主页面 -->
+<div id="mainPage" class="hidden">
+    <header class="header">
+        <h1>🏥 CVOnto 护士站 - 门诊分诊系统</h1>
+        <div class="header-info">
+            <div class="nurse-info">
+                <span>👤 <span id="nurseName">--</span></span>
+                <span>📍 <span id="nurseDept">--</span></span>
             </div>
-        </header>
-        
-        <div class="main-container">
-            <!-- 左侧边栏 -->
-            <aside class="sidebar">
-                <!-- 科室信息 -->
-                <div class="dept-info">
-                    <div class="dept-info-title">所属科室</div>
-                    <div class="dept-info-name" id="deptName">--</div>
-                </div>
-                
-                <!-- 午别筛选 -->
-                <div class="time-filter">
-                    <h3>🕐 午别筛选</h3>
-                    <div class="time-buttons">
-                        <button class="time-btn active" data-time="" onclick="filterByTime('')">全部</button>
-                        <button class="time-btn" data-time="上午" onclick="filterByTime('上午')">上午</button>
-                        <button class="time-btn" data-time="下午" onclick="filterByTime('下午')">下午</button>
-                    </div>
-                </div>
-                
-                <!-- 出诊医生栏（号别排班） -->
-                <div class="doctor-section">
-                    <div class="section-header">
-                        <span>👨‍⚕️ 出诊医生（号别排班）</span>
-                        <button class="btn-refresh" onclick="refreshSchedules()">🔄</button>
-                    </div>
-                    <div class="doctor-list" id="doctorList">
-                        <div class="loading">加载中...</div>
-                    </div>
-                </div>
-                
-                <!-- 患者列表 -->
-                <div class="patient-section">
-                    <div class="section-header">
-                        <span>👥 患者列表 (<span id="patientCount">0</span>)</span>
-                    </div>
-                    <div class="patient-list" id="patientList">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">👥</div>
-                            <div class="empty-state-text">请选择号别查看患者</div>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-            
-            <!-- 右侧内容区 -->
-            <main class="content">
-                <!-- 患者基本信息 -->
-                <div class="patient-detail-card" id="patientDetailCard" style="display: none;">
-                    <div class="detail-header">
-                        <div class="detail-title">
-                            <span class="detail-name" id="detailName">--</span>
-                            <div class="detail-tags">
-                                <span class="detail-tag tag-visit" id="detailVisitNo">--</span>
-                                <span class="detail-tag tag-serial" id="detailSerial">--</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="detail-info-grid" id="detailInfoGrid">
-                        <!-- 动态填充 -->
-                    </div>
-                </div>
-                
-                <!-- 开单信息 -->
-                <div class="orders-container">
-                    <div class="orders-header">
-                        <span class="orders-title">📋 开单信息（处方/检查/检验）</span>
-                        <button class="btn-refresh" onclick="refreshOrders()">🔄 刷新</button>
-                    </div>
-                    <div class="orders-content" id="ordersContent">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">📋</div>
-                            <div class="empty-state-text">请选择患者查看开单信息</div>
-                        </div>
-                    </div>
-                </div>
-            </main>
+            <span id="currentTime">--</span>
+            <button class="logout-btn" onclick="logout()">退出登录</button>
         </div>
+    </header>
+
+    <div class="main-container">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <!-- 科室信息 -->
+            <div class="dept-info">
+                <div class="dept-info-title">所属科室</div>
+                <div class="dept-info-name" id="deptName">--</div>
+            </div>
+
+            <!-- 午别筛选 -->
+            <div class="time-filter">
+                <h3>🕐 午别筛选</h3>
+                <div class="time-buttons">
+                    <button class="time-btn active" data-time="" onclick="filterByTime('')">全部</button>
+                    <button class="time-btn" data-time="上午" onclick="filterByTime('上午')">上午</button>
+                    <button class="time-btn" data-time="下午" onclick="filterByTime('下午')">下午</button>
+                </div>
+            </div>
+
+            <!-- 出诊医生栏（号别排班） -->
+            <div class="doctor-section">
+                <div class="section-header">
+                    <span>👨‍⚕️ 出诊医生（号别排班）</span>
+                    <button class="btn-refresh" onclick="refreshSchedules()">🔄</button>
+                </div>
+                <div class="doctor-list" id="doctorList">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 患者列表 -->
+            <div class="patient-section">
+                <div class="section-header">
+                    <span>👥 患者列表 (<span id="patientCount">0</span>)</span>
+                </div>
+                <div class="patient-list" id="patientList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <div class="empty-state-text">请选择号别查看患者</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧内容区 -->
+        <main class="content">
+            <!-- 患者基本信息 -->
+            <div class="patient-detail-card" id="patientDetailCard" style="display: none;">
+                <div class="detail-header">
+                    <div class="detail-title">
+                        <span class="detail-name" id="detailName">--</span>
+                        <div class="detail-tags">
+                            <span class="detail-tag tag-visit" id="detailVisitNo">--</span>
+                            <span class="detail-tag tag-serial" id="detailSerial">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-info-grid" id="detailInfoGrid">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+
+            <!-- 开单信息 -->
+            <div class="orders-container">
+                <div class="orders-header">
+                    <span class="orders-title">📋 开单信息（处方/检查/检验）</span>
+                    <button class="btn-refresh" onclick="refreshOrders()">🔄 刷新</button>
+                </div>
+                <div class="orders-content" id="ordersContent">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">请选择患者查看开单信息</div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-    
-    <div class="api-status" id="apiStatus"></div>
-    
-    <script>
-        // ============ 全局变量 ============
-        const API_BASE = 'http://localhost:5000';
-        let currentNurse = null;
-        let currentTimeFilter = '';
-        let currentSchedule = null;
-        let currentPatient = null;
-        let schedulesData = [];
-        let patientsData = [];
-        
-        // ============ 初始化 ============
-        document.addEventListener('DOMContentLoaded', init);
-        
-        async function init() {
-            updateTime();
-            setInterval(updateTime, 60000);
-            
-            // 检查是否已登录
-            const savedNurse = sessionStorage.getItem('currentNurse');
-            if (savedNurse) {
-                currentNurse = JSON.parse(savedNurse);
-                showMainPage();
-            }
-            
-            // 绑定登录表单
-            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+</div>
+
+<div class="api-status" id="apiStatus"></div>
+
+<script>
+    // ============ 全局变量 ============
+    const API_BASE = 'http://localhost:5000';
+    let currentNurse = null;
+    let currentTimeFilter = '';
+    let currentSchedule = null;
+    let currentPatient = null;
+    let schedulesData = [];
+    let patientsData = [];
+
+    // ============ 初始化 ============
+    document.addEventListener('DOMContentLoaded', init);
+
+    async function init() {
+        updateTime();
+        setInterval(updateTime, 60000);
+
+        // 检查是否已登录
+        const savedNurse = sessionStorage.getItem('currentNurse');
+        if (savedNurse) {
+            currentNurse = JSON.parse(savedNurse);
+            showMainPage();
         }
-        
-        function updateTime() {
-            const timeEl = document.getElementById('currentTime');
-            if (timeEl) {
-                timeEl.textContent = new Date().toLocaleString('zh-CN', { 
-                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', weekday: 'long' 
-                });
-            }
-        }
-        
-        // ============ 登录功能 ============
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            const nurseCode = document.getElementById('nurseCode').value.trim();
-            const password = document.getElementById('password').value.trim();
-            
-            if (!nurseCode || !password) {
-                showError('请输入工号和密码');
-                return;
-            }
-            
-            const loginBtn = document.getElementById('loginBtn');
-            loginBtn.disabled = true;
-            loginBtn.textContent = '登录中...';
-            
-            try {
-                const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nurse_code: nurseCode, password: password })
-                });
-                
-                const result = await res.json();
-                
-                if (result.success) {
-                    currentNurse = result.data;
-                    sessionStorage.setItem('currentNurse', JSON.stringify(currentNurse));
-                    showMainPage();
-                } else {
-                    showError(result.message || '登录失败');
-                }
-            } catch (e) {
-                console.error('登录失败:', e);
-                showError('无法连接到服务器，请检查后端服务是否启动');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = '登 录';
-            }
-        }
-        
-        function showError(message) {
-            const errorEl = document.getElementById('errorMessage');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            setTimeout(() => {
-                errorEl.style.display = 'none';
-            }, 3000);
-        }
-        
-        function showMainPage() {
-            document.getElementById('loginPage').classList.add('hidden');
-            document.getElementById('mainPage').classList.remove('hidden');
-            
-            // 显示护士信息
-            document.getElementById('nurseName').textContent = currentNurse.name;
-            document.getElementById('nurseDept').textContent = currentNurse.dept_name;
-            document.getElementById('deptName').textContent = currentNurse.dept_name;
-            
-            // 加载数据
-            loadSchedules();
-        }
-        
-        async function logout() {
-            if (!confirm('确定要退出登录吗？')) {
-                return;
-            }
-            
-            try {
-                await fetch(`${API_BASE}/api/v1/auth/logout`, { method: 'POST' });
-            } catch (e) {
-                console.error('登出失败:', e);
-            }
-            
-            sessionStorage.removeItem('currentNurse');
-            location.reload();
-        }
-        
-        // ============ G0078 号别排班 ============
-        async function loadSchedules() {
-            try {
-                const today = new Date().toISOString().split('T')[0];
-                let url = `${API_BASE}/api/v1/clinic-schedules?clinic_date=${today}`;
-                
-                // 添加午别筛选
-                if (currentTimeFilter) {
-                    url += `&time_desc=${encodeURIComponent(currentTimeFilter)}`;
-                }
-                
-                const res = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${currentNurse.token}`
-                    }
-                });
-                
-                const result = await res.json();
-                
-                if (result.success) {
-                    schedulesData = result.data.schedules;
-                    renderDoctorList(schedulesData);
-                } else {
-                    showApiStatus('获取号别排班失败: ' + result.message, 'error');
-                }
-            } catch (e) {
-                console.error('加载号别排班失败:', e);
-                showApiStatus('加载号别排班失败，请检查网络连接', 'error');
-            }
-        }
-        
-        function filterByTime(timeDesc) {
-            currentTimeFilter = timeDesc;
-            
-            // 更新按钮状态
-            document.querySelectorAll('.time-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.time === timeDesc);
+
+        // 绑定登录表单
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    }
+
+    function updateTime() {
+        const timeEl = document.getElementById('currentTime');
+        if (timeEl) {
+            timeEl.textContent = new Date().toLocaleString('zh-CN', {
+                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', weekday: 'long'
             });
-            
-            // 重新加载数据
-            loadSchedules();
         }
-        
-        function renderDoctorList(schedules) {
-            const container = document.getElementById('doctorList');
-            
-            if (!schedules || schedules.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👨‍⚕️</div><div class="empty-state-text">暂无号别排班数据</div></div>';
-                return;
+    }
+
+    // ============ 登录功能 ============
+    async function handleLogin(e) {
+        e.preventDefault();
+
+        const nurseCode = document.getElementById('nurseCode').value.trim();
+        const password = document.getElementById('password').value.trim();
+
+        if (!nurseCode || !password) {
+            showError('请输入工号和密码');
+            return;
+        }
+
+        const loginBtn = document.getElementById('loginBtn');
+        loginBtn.disabled = true;
+        loginBtn.textContent = '登录中...';
+
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({nurse_code: nurseCode, password: password})
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                currentNurse = result.data;
+                sessionStorage.setItem('currentNurse', JSON.stringify(currentNurse));
+                showMainPage();
+            } else {
+                showError(result.message || '登录失败');
             }
-            
-            let html = '';
-            schedules.forEach(schedule => {
-                const isActive = currentSchedule && 
-                               currentSchedule.clinic_label === schedule.clinic_label &&
-                               currentSchedule.time_desc === schedule.time_desc;
-                
-                html += `
+        } catch (e) {
+            console.error('登录失败:', e);
+            showError('无法连接到服务器，请检查后端服务是否启动');
+        } finally {
+            loginBtn.disabled = false;
+            loginBtn.textContent = '登 录';
+        }
+    }
+
+    function showError(message) {
+        const errorEl = document.getElementById('errorMessage');
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+        setTimeout(() => {
+            errorEl.style.display = 'none';
+        }, 3000);
+    }
+
+    function showMainPage() {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('mainPage').classList.remove('hidden');
+
+        // 显示护士信息
+        document.getElementById('nurseName').textContent = currentNurse.name;
+        document.getElementById('nurseDept').textContent = currentNurse.dept_name;
+        document.getElementById('deptName').textContent = currentNurse.dept_name;
+
+        // 加载数据
+        loadSchedules();
+    }
+
+    async function logout() {
+        if (!confirm('确定要退出登录吗？')) {
+            return;
+        }
+
+        try {
+            await fetch(`${API_BASE}/api/v1/auth/logout`, {method: 'POST'});
+        } catch (e) {
+            console.error('登出失败:', e);
+        }
+
+        sessionStorage.removeItem('currentNurse');
+        location.reload();
+    }
+
+    // ============ G0078 号别排班 ============
+    async function loadSchedules() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            let url = `${API_BASE}/api/v1/clinic-schedules?clinic_date=${today}`;
+
+            // 添加午别筛选
+            if (currentTimeFilter) {
+                url += `&time_desc=${encodeURIComponent(currentTimeFilter)}`;
+            }
+
+            const res = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${currentNurse.token}`
+                }
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                schedulesData = result.data.schedules;
+                renderDoctorList(schedulesData);
+            } else {
+                showApiStatus('获取号别排班失败: ' + result.message, 'error');
+            }
+        } catch (e) {
+            console.error('加载号别排班失败:', e);
+            showApiStatus('加载号别排班失败，请检查网络连接', 'error');
+        }
+    }
+
+    function filterByTime(timeDesc) {
+        currentTimeFilter = timeDesc;
+
+        // 更新按钮状态
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.time === timeDesc);
+        });
+
+        // 重新加载数据
+        loadSchedules();
+    }
+
+    function renderDoctorList(schedules) {
+        const container = document.getElementById('doctorList');
+
+        if (!schedules || schedules.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👨‍⚕️</div><div class="empty-state-text">暂无号别排班数据</div></div>';
+            return;
+        }
+
+        let html = '';
+        schedules.forEach(schedule => {
+            const isActive = currentSchedule &&
+                currentSchedule.clinic_label === schedule.clinic_label &&
+                currentSchedule.time_desc === schedule.time_desc;
+
+            html += `
                     <div class="doctor-item ${isActive ? 'active' : ''}" 
                          onclick="selectSchedule('${schedule.clinic_label}', '${schedule.time_desc}', '${schedule.dept_name}')">
                         <div class="doctor-avatar">${schedule.clinic_label[0]}</div>
@@ -415,57 +918,57 @@
                         <span class="doctor-count">${schedule.registration_num}</span>
                     </div>
                 `;
-            });
-            
-            container.innerHTML = html;
-        }
-        
-        function selectSchedule(clinicLabel, timeDesc, deptName) {
-            currentSchedule = { clinic_label: clinicLabel, time_desc: timeDesc, dept_name: deptName };
-            renderDoctorList(schedulesData);
-            loadPatientRegistrations(clinicLabel, timeDesc);
-        }
-        
-        function refreshSchedules() {
-            loadSchedules();
-        }
-        
-        // ============ G0079 患者挂号 ============
-        async function loadPatientRegistrations(clinicLabel, timeDesc) {
-            try {
-                const today = new Date().toISOString().split('T')[0];
-                const url = `${API_BASE}/api/v1/patient-registrations?visit_date=${today}&clinic_label=${encodeURIComponent(clinicLabel)}&visit_time_desc=${encodeURIComponent(timeDesc)}`;
-                
-                const res = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${currentNurse.token}`
-                    }
-                });
-                
-                const result = await res.json();
-                
-                if (result.success) {
-                    patientsData = result.data.registrations;
-                    renderPatientList(patientsData);
-                } else {
-                    showApiStatus('获取患者列表失败: ' + result.message, 'error');
+        });
+
+        container.innerHTML = html;
+    }
+
+    function selectSchedule(clinicLabel, timeDesc, deptName) {
+        currentSchedule = {clinic_label: clinicLabel, time_desc: timeDesc, dept_name: deptName};
+        renderDoctorList(schedulesData);
+        loadPatientRegistrations(clinicLabel, timeDesc);
+    }
+
+    function refreshSchedules() {
+        loadSchedules();
+    }
+
+    // ============ G0079 患者挂号 ============
+    async function loadPatientRegistrations(clinicLabel, timeDesc) {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const url = `${API_BASE}/api/v1/patient-registrations?visit_date=${today}&clinic_label=${encodeURIComponent(clinicLabel)}&visit_time_desc=${encodeURIComponent(timeDesc)}`;
+
+            const res = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${currentNurse.token}`
                 }
-            } catch (e) {
-                console.error('加载患者列表失败:', e);
-                showApiStatus('加载患者列表失败', 'error');
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                patientsData = result.data.registrations;
+                renderPatientList(patientsData);
+            } else {
+                showApiStatus('获取患者列表失败: ' + result.message, 'error');
             }
+        } catch (e) {
+            console.error('加载患者列表失败:', e);
+            showApiStatus('加载患者列表失败', 'error');
         }
-        
-        function renderPatientList(patients) {
-            const container = document.getElementById('patientList');
-            document.getElementById('patientCount').textContent = patients.length;
-            
-            if (patients.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">暂无患者</div></div>';
-                return;
-            }
-            
-            container.innerHTML = patients.map(p => `
+    }
+
+    function renderPatientList(patients) {
+        const container = document.getElementById('patientList');
+        document.getElementById('patientCount').textContent = patients.length;
+
+        if (patients.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">暂无患者</div></div>';
+            return;
+        }
+
+        container.innerHTML = patients.map(p => `
                 <div class="patient-item ${currentPatient === p.visit_no ? 'active' : ''}" 
                      onclick="selectPatient('${p.visit_no}')">
                     <div class="patient-header">
@@ -479,27 +982,27 @@
                     </div>
                 </div>
             `).join('');
+    }
+
+    // ============ G0080 患者开单 ============
+    async function selectPatient(visitNo) {
+        currentPatient = visitNo;
+        renderPatientList(patientsData);
+
+        const patient = patientsData.find(p => p.visit_no === visitNo);
+        if (patient) {
+            renderPatientDetail(patient);
         }
-        
-        // ============ G0080 患者开单 ============
-        async function selectPatient(visitNo) {
-            currentPatient = visitNo;
-            renderPatientList(patientsData);
-            
-            const patient = patientsData.find(p => p.visit_no === visitNo);
-            if (patient) {
-                renderPatientDetail(patient);
-            }
-            
-            await loadPatientOrders(visitNo);
-        }
-        
-        function renderPatientDetail(patient) {
-            document.getElementById('detailName').textContent = patient.name;
-            document.getElementById('detailVisitNo').textContent = `就诊号: ${patient.visit_no}`;
-            document.getElementById('detailSerial').textContent = `序号: ${patient.serial_no}`;
-            
-            document.getElementById('detailInfoGrid').innerHTML = `
+
+        await loadPatientOrders(visitNo);
+    }
+
+    function renderPatientDetail(patient) {
+        document.getElementById('detailName').textContent = patient.name;
+        document.getElementById('detailVisitNo').textContent = `就诊号: ${patient.visit_no}`;
+        document.getElementById('detailSerial').textContent = `序号: ${patient.serial_no}`;
+
+        document.getElementById('detailInfoGrid').innerHTML = `
                 <div class="detail-info-item">
                     <span class="detail-info-label">患者ID</span>
                     <span class="detail-info-value">${patient.patient_id}</span>
@@ -533,45 +1036,45 @@
                     <span class="detail-info-value">${patient.clinic_label}</span>
                 </div>
             `;
-            
-            document.getElementById('patientDetailCard').style.display = 'block';
-        }
-        
-        async function loadPatientOrders(visitNo) {
-            try {
-                const today = new Date().toISOString().split('T')[0];
-                const url = `${API_BASE}/api/v1/patient-orders?visit_date=${today}&visit_no=${visitNo}`;
-                
-                const res = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${currentNurse.token}`
-                    }
-                });
-                
-                const result = await res.json();
-                
-                if (result.success) {
-                    renderOrders(result.data.class_groups);
-                } else {
-                    showApiStatus('获取开单信息失败: ' + result.message, 'error');
+
+        document.getElementById('patientDetailCard').style.display = 'block';
+    }
+
+    async function loadPatientOrders(visitNo) {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const url = `${API_BASE}/api/v1/patient-orders?visit_date=${today}&visit_no=${visitNo}`;
+
+            const res = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${currentNurse.token}`
                 }
-            } catch (e) {
-                console.error('加载开单信息失败:', e);
-                showApiStatus('加载开单信息失败', 'error');
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                renderOrders(result.data.class_groups);
+            } else {
+                showApiStatus('获取开单信息失败: ' + result.message, 'error');
             }
+        } catch (e) {
+            console.error('加载开单信息失败:', e);
+            showApiStatus('加载开单信息失败', 'error');
         }
-        
-        function renderOrders(classGroups) {
-            const container = document.getElementById('ordersContent');
-            
-            if (!classGroups || Object.keys(classGroups).length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">暂无开单信息</div></div>';
-                return;
-            }
-            
-            let html = '';
-            for (const [className, orders] of Object.entries(classGroups)) {
-                html += `
+    }
+
+    function renderOrders(classGroups) {
+        const container = document.getElementById('ordersContent');
+
+        if (!classGroups || Object.keys(classGroups).length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">暂无开单信息</div></div>';
+            return;
+        }
+
+        let html = '';
+        for (const [className, orders] of Object.entries(classGroups)) {
+            html += `
                     <div class="order-group">
                         <div class="order-group-header">
                             <span>${className}</span>
@@ -599,7 +1102,7 @@
                                         <td>${order.administration || '-'}</td>
                                         <td>${order.frequency || '-'}</td>
                                         <td>${order.quantity} ${order.package_units || ''}</td>
-                                        <td>¥${order.price.toFixed(2)}</td>
+                                        <td>¥${Number(order.price || 0).toFixed(2)}</td>
                                         <td>${order.states || '-'}</td>
                                     </tr>
                                 `).join('')}
@@ -607,24 +1110,24 @@
                         </table>
                     </div>
                 `;
-            }
-            
-            container.innerHTML = html;
         }
-        
-        function refreshOrders() {
-            if (currentPatient) {
-                loadPatientOrders(currentPatient);
-            }
+
+        container.innerHTML = html;
+    }
+
+    function refreshOrders() {
+        if (currentPatient) {
+            loadPatientOrders(currentPatient);
         }
-        
-        // ============ 工具函数 ============
-        function showApiStatus(message, type) {
-            const el = document.getElementById('apiStatus');
-            el.textContent = message;
-            el.className = 'api-status ' + type;
-            setTimeout(() => el.style.display = 'none', 5000);
-        }
-    </script>
+    }
+
+    // ============ 工具函数 ============
+    function showApiStatus(message, type) {
+        const el = document.getElementById('apiStatus');
+        el.textContent = message;
+        el.className = 'api-status ' + type;
+        setTimeout(() => el.style.display = 'none', 5000);
+    }
+</script>
 </body>
 </html>
