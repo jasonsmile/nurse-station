@@ -11,6 +11,7 @@ from datetime import datetime
 import logging
 import os
 import sys
+from config import APP_CONFIG
 
 # 添加项目路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 # 创建 Flask 应用
 app = Flask(__name__)
+app.secret_key = APP_CONFIG['secret_key']
 # 纯内网环境，允许所有来源（或指定内网IP段）
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -40,7 +42,11 @@ app.config['JSON_SORT_KEYS'] = False
 
 # 导入并注册路由
 from routes import api_bp
+from auth import auth_bp
+
 app.register_blueprint(api_bp)
+app.register_blueprint(auth_bp)
+
 
 # ============ 健康检查 ============
 @app.route('/api/v1/health', methods=['GET'])
@@ -60,16 +66,19 @@ def health_check():
         "timestamp": datetime.now().isoformat()
     })
 
+
 # ============ 静态文件服务 ============
 @app.route('/')
 def index():
     """首页"""
     return send_from_directory('/opt/nurse-station/frontend', 'index.html')
 
+
 @app.route('/<path:path>')
 def static_files(path):
     """静态文件"""
     return send_from_directory('/opt/nurse-station/frontend', path)
+
 
 # ============ 错误处理 ============
 @app.errorhandler(404)
@@ -82,6 +91,7 @@ def not_found(error):
         "timestamp": datetime.now().isoformat()
     }), 404
 
+
 @app.errorhandler(500)
 def internal_error(error):
     logger.error(f"Internal error: {error}")
@@ -92,6 +102,7 @@ def internal_error(error):
         "data": None,
         "timestamp": datetime.now().isoformat()
     }), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
