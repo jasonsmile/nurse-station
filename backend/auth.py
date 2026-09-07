@@ -132,11 +132,34 @@ def login():
         # 保存到session
         session['nurse_id'] = nurse['nurse_id']
         session['nurse_code'] = nurse['nurse_code']
-        session['dept_code'] = nurse['dept_code']
+        session['dept_code'] = nurse['dept_code']  # 主要科室（兼容旧代码）
+        session['dept_name'] = nurse['dept_name']
+        session['floor'] = nurse.get('floor')
         session['role'] = nurse['role']
         session['session_id'] = session_id
         
-        logger.info(f"护士登录成功: {nurse['name']} ({nurse_code}) - {nurse['dept_name']}")
+        # 查询护士关联的科室列表（多科室支持）
+        dept_codes = []
+        dept_names = []
+        try:
+            with db.get_cursor() as cursor:
+                cursor.execute("""
+                    SELECT dept_code, dept_name FROM nurse_dept_relations
+                    WHERE nurse_id = %s AND status = 1
+                    ORDER BY is_primary DESC, dept_code
+                """, (nurse['nurse_id'],))
+                results = cursor.fetchall()
+                dept_codes = [row['dept_code'] for row in results]
+                dept_names = [row['dept_name'] for row in results]
+        except Exception as e:
+            logger.warning(f"查询护士多科室配置失败，使用单科室模式: {e}")
+            dept_codes = [nurse['dept_code']] if nurse['dept_code'] else []
+            dept_names = [nurse['dept_name']] if nurse['dept_name'] else []
+        
+        session['dept_codes'] = dept_codes
+        session['dept_names'] = dept_names
+        
+        logger.info(f"护士登录成功: {nurse['name']} ({nurse_code}) - 科室: {', '.join(dept_names)}")
         
         return success_response({
             "nurse_id": nurse['nurse_id'],
@@ -145,6 +168,9 @@ def login():
             "title": nurse['title'],
             "dept_code": nurse['dept_code'],
             "dept_name": nurse['dept_name'],
+            "dept_codes": dept_codes,
+            "dept_names": dept_names,
+            "floor": nurse.get('floor'),
             "role": nurse['role'],
             "token": session_id
         }, "登录成功")
@@ -195,7 +221,7 @@ def get_current_nurse():
         with db.get_cursor() as cursor:
             cursor.execute("""
                 SELECT nurse_id, nurse_code, name, title,
-                       dept_code, dept_name, role, status
+                       dept_code, dept_name, floor, role, status
                 FROM nurses
                 WHERE nurse_id = %s
             """, (nurse_id,))
@@ -204,6 +230,24 @@ def get_current_nurse():
         if not nurse:
             return error_response("护士信息不存在", "NURSE_NOT_FOUND", 404)
         
+        # 查询护士关联的科室列表（多科室支持）
+        dept_codes = []
+        dept_names = []
+        try:
+            with db.get_cursor() as cursor:
+                cursor.execute("""
+                    SELECT dept_code, dept_name FROM nurse_dept_relations
+                    WHERE nurse_id = %s AND status = 1
+                    ORDER BY is_primary DESC, dept_code
+                """, (nurse_id,))
+                results = cursor.fetchall()
+                dept_codes = [row['dept_code'] for row in results]
+                dept_names = [row['dept_name'] for row in results]
+        except Exception as e:
+            logger.warning(f"查询护士多科室配置失败，使用单科室模式: {e}")
+            dept_codes = [nurse['dept_code']] if nurse['dept_code'] else []
+            dept_names = [nurse['dept_name']] if nurse['dept_name'] else []
+        
         return success_response({
             "nurse_id": nurse['nurse_id'],
             "nurse_code": nurse['nurse_code'],
@@ -211,6 +255,9 @@ def get_current_nurse():
             "title": nurse['title'],
             "dept_code": nurse['dept_code'],
             "dept_name": nurse['dept_name'],
+            "dept_codes": dept_codes,
+            "dept_names": dept_names,
+            "floor": nurse.get('floor'),
             "role": nurse['role']
         })
         
@@ -289,9 +336,126 @@ def require_login(f):
     
     return decorated_function
 
+def get_current_dept_codes():
+    """获取当前登录护士的科室编码列表（支持多科室）"""
+    nurse_id = session.get('nurse_id')
+    if not nurse_id:
+        return []
+    
+    # 管理员返回空列表（表示可以查看所有科室）
+    if is_admin():
+        return []
+    
+    # 查询护士关联的科室列表
+    try:
+        with db.get_cursor() as cursor:
+            cursor.execute("""
+                SELECT dept_code FROM nurse_dept_relations
+                WHERE nurse_id = %s AND status = 1
+                ORDER BY is_primary DESC, dept_code
+            """, (nurse_id,))
+            results = cursor.fetchall()
+            return [row['dept_code'] for row in results]
+    except Exception as e:
+        logger.error(f"获取护士科室列表失败: {e}")
+        # 如果关联表不存在，回退到原来的单科室模式
+        dept_code = session.get('dept_code')
+        return [dept_code] if dept_code else []
+
 def get_current_dept_code():
-    """获取当前登录护士的科室编码"""
-    return session.get('dept_code')
+    """获取当前登录护士的主要科室编码（兼容旧代码）"""
+    dept_codes = get_current_dept_codes()
+    return dept_codes[0] if dept_codes else session.get('dept_code')
+
+def get_current_dept_names():
+    """获取当前登录护士的科室名称列表"""
+    nurse_id = session.get('nurse_id')
+    if not nurse_id:
+        return []
+    
+    if is_admin():
+        return []
+    
+    try:
+        with db.get_cursor() as cursor:
+            cursor.execute("""
+                SELECT dept_name FROM nurse_dept_relations
+                WHERE nurse_id = %s AND status = 1
+                ORDER BY is_primary DESC, dept_code
+            """, (nurse_id,))
+            results = cursor.fetchall()
+            return [row['dept_name'] for row in results]
+    except Exception as e:
+        logger.error(f"获取护士科室名称列表失败: {e}")
+        dept_name = session.get('dept_name')
+        return [dept_name] if dept_name else []
+
+def has_dept_permission(dept_code):
+    """检查当前护士是否有权限查看指定科室"""
+    if is_admin():
+        return True
+    
+    dept_codes = get_current_dept_codes()
+    return dept_code in dept_codes
+
+def get_nurse_floor():
+    """获取当前登录护士所在楼层"""
+    return session.get('floor')
+
+def get_nurse_permissions(nurse_id=None):
+    """获取护士的权限列表"""
+    if nurse_id is None:
+        nurse_id = session.get('nurse_id')
+    
+    if not nurse_id:
+        return []
+    
+    try:
+        with db.get_cursor() as cursor:
+            cursor.execute("""
+                SELECT DISTINCT permission_code 
+                FROM v_nurse_permissions 
+                WHERE nurse_id = %s
+            """, (nurse_id,))
+            results = cursor.fetchall()
+            return [row['permission_code'] for row in results]
+    except Exception as e:
+        logger.error(f"获取护士权限失败: {e}")
+        return []
+
+def has_permission(permission_code, nurse_id=None):
+    """检查护士是否有指定权限"""
+    if nurse_id is None:
+        nurse_id = session.get('nurse_id')
+    
+    if not nurse_id:
+        return False
+    
+    # 管理员拥有所有权限
+    if is_admin():
+        return True
+    
+    permissions = get_nurse_permissions(nurse_id)
+    return permission_code in permissions
+
+def require_permission(permission_code):
+    """权限验证装饰器"""
+    def decorator(f):
+        from functools import wraps
+        
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            nurse_id = session.get('nurse_id')
+            if not nurse_id:
+                return error_response("请先登录", "NOT_LOGGED_IN", 401)
+            
+            if not has_permission(permission_code, nurse_id):
+                return error_response("无权限执行此操作", "PERMISSION_DENIED", 403)
+            
+            return f(*args, **kwargs)
+        
+        return decorated_function
+    return decorator
 
 def is_admin():
     """判断当前用户是否是管理员"""

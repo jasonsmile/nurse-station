@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVOnto 护士站 - G0078/G0079/G0080</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #f0f2f5; color: #333; line-height: 1.6; }
+        .header { background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%); color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header h1 { font-size: 18px; font-weight: 500; }
+        .header-info { display: flex; align-items: center; gap: 15px; font-size: 13px; }
+        .main-container { display: flex; height: calc(100vh - 60px); }
+        
+        /* 左侧边栏 */
+        .sidebar { width: 320px; background: white; border-right: 1px solid #e8e8e8; display: flex; flex-direction: column; }
+        .dept-filter { padding: 12px; border-bottom: 1px solid #e8e8e8; background: #fafafa; }
+        .dept-filter h3 { font-size: 12px; color: #666; margin-bottom: 8px; }
+        .dept-select { width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; }
+        
+        .doctor-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .section-header { padding: 10px 12px; border-bottom: 1px solid #e8e8e8; background: #fafafa; font-size: 12px; font-weight: 500; color: #262626; }
+        .doctor-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .doctor-item { display: flex; align-items: center; padding: 10px; border-radius: 6px; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; background: white; margin-bottom: 6px; }
+        .doctor-item:hover { border-color: #91d5ff; background: #e6f7ff; }
+        .doctor-item.active { border-color: #1890ff; background: #e6f7ff; }
+        .doctor-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #1890ff, #36cfc9); color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; margin-right: 10px; }
+        .doctor-info { flex: 1; }
+        .doctor-name { font-weight: 500; font-size: 14px; color: #262626; }
+        .doctor-title { font-size: 12px; color: #8c8c8c; }
+        .doctor-count { background: #ff4d4f; color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; min-width: 20px; text-align: center; }
+        
+        .patient-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid #e8e8e8; }
+        .patient-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .patient-item { padding: 10px; border-radius: 6px; cursor: pointer; transition: all 0.3s; margin-bottom: 6px; border: 1px solid #e8e8e8; background: white; }
+        .patient-item:hover { border-color: #91d5ff; box-shadow: 0 2px 6px rgba(24,144,255,0.1); }
+        .patient-item.active { border-color: #1890ff; background: #e6f7ff; }
+        .patient-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .patient-name { font-weight: 600; font-size: 14px; color: #262626; }
+        .patient-serial { background: #1890ff; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+        .patient-info { display: flex; gap: 10px; font-size: 12px; color: #8c8c8c; }
+        
+        /* 右侧内容区 */
+        .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .patient-detail-card { background: white; margin: 12px; padding: 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .detail-title { display: flex; align-items: center; gap: 12px; }
+        .detail-name { font-size: 22px; font-weight: 600; color: #262626; }
+        .detail-tags { display: flex; gap: 8px; }
+        .detail-tag { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .tag-visit { background: #e6f7ff; color: #1890ff; }
+        .tag-serial { background: #f6ffed; color: #52c41a; }
+        .detail-info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .detail-info-item { display: flex; flex-direction: column; }
+        .detail-info-label { font-size: 12px; color: #8c8c8c; margin-bottom: 4px; }
+        .detail-info-value { font-size: 14px; color: #262626; font-weight: 500; }
+        
+        .orders-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; margin: 0 12px 12px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .orders-header { padding: 12px 16px; border-bottom: 1px solid #e8e8e8; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+        .orders-title { font-size: 14px; font-weight: 500; color: #262626; }
+        .orders-content { flex: 1; overflow: auto; padding: 0; }
+        
+        .order-group { margin-bottom: 16px; }
+        .order-group-header { padding: 10px 16px; background: #f0f0f0; font-size: 13px; font-weight: 500; color: #595959; border-bottom: 1px solid #e8e8e8; }
+        .order-table { width: 100%; border-collapse: collapse; }
+        .order-table th { background: #fafafa; padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 500; color: #262626; border-bottom: 1px solid #e8e8e8; }
+        .order-table td { padding: 10px 12px; font-size: 12px; color: #595959; border-bottom: 1px solid #f0f0f0; }
+        .order-table tr:hover { background: #f6ffed; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #8c8c8c; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state-text { font-size: 14px; }
+        
+        .loading { text-align: center; padding: 40px; color: #1890ff; }
+        .api-status { position: fixed; top: 70px; right: 20px; padding: 10px 15px; border-radius: 6px; font-size: 12px; z-index: 100; display: none; }
+        .api-status.success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; display: block; }
+        .api-status.error { background: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; display: block; }
+        
+        .btn-refresh { background: #1890ff; color: white; border: none; padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-refresh:hover { background: #40a9ff; }
+        
+        /* 导航菜单样式 */
+        .nav-menu { display: flex; gap: 15px; align-items: center; }
+        .nav-item { color: white; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; transition: all 0.3s; display: flex; align-items: center; gap: 6px; }
+        .nav-item:hover { background: rgba(255,255,255,0.2); }
+        .nav-item.active { background: rgba(255,255,255,0.3); font-weight: 500; }
+        .nav-icon { font-size: 16px; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏥 CVOnto 护士站 - 门诊分诊系统</h1>
+        <div class="nav-menu">
+            <a href="nurse_station_g0078_g0080.html" class="nav-item active">
+                <span class="nav-icon">📋</span>
+                <span>工作台</span>
+            </a>
+            <a href="patient_query.html" class="nav-item">
+                <span class="nav-icon">🔍</span>
+                <span>患者查询</span>
+            </a>
+            <a href="nurse_admin.html" class="nav-item" id="adminNavItem" style="display: none;">
+                <span class="nav-icon">⚙️</span>
+                <span>权限管理</span>
+            </a>
+        </div>
+        <div class="header-info">
+            <span>👤 当前护士：<span id="nurseName">李护士</span></span>
+            <span id="currentTime">--</span>
+        </div>
+    </header>
+    
+    <div class="main-container">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <!-- 科室筛选 -->
+            <div class="dept-filter">
+                <h3>🏥 选择科室</h3>
+                <select class="dept-select" id="deptSelect">
+                    <option value="">全部科室</option>
+                </select>
+            </div>
+            
+            <!-- 出诊医生栏（号别排班） -->
+            <div class="doctor-section">
+                <div class="section-header">
+                    👨‍⚕️ 出诊医生（号别排班）
+                    <button class="btn-refresh" onclick="refreshSchedules()" style="float: right; padding: 2px 8px; font-size: 11px;">🔄</button>
+                </div>
+                <div class="doctor-list" id="doctorList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👨‍⚕️</div>
+                        <div class="empty-state-text">请选择科室查看号别排班</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 患者列表 -->
+            <div class="patient-section">
+                <div class="section-header">
+                    👥 患者列表 (<span id="patientCount">0</span>)
+                </div>
+                <div class="patient-list" id="patientList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <div class="empty-state-text">请选择号别查看患者</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- 右侧内容区 -->
+        <main class="content">
+            <!-- 患者基本信息 -->
+            <div class="patient-detail-card" id="patientDetailCard" style="display: none;">
+                <div class="detail-header">
+                    <div class="detail-title">
+                        <span class="detail-name" id="detailName">--</span>
+                        <div class="detail-tags">
+                            <span class="detail-tag tag-visit" id="detailVisitNo">--</span>
+                            <span class="detail-tag tag-serial" id="detailSerial">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-info-grid" id="detailInfoGrid">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+            
+            <!-- 开单信息 -->
+            <div class="orders-container">
+                <div class="orders-header">
+                    <span class="orders-title">📋 开单信息（处方/检查/检验）</span>
+                    <button class="btn-refresh" onclick="refreshOrders()">🔄 刷新</button>
+                </div>
+                <div class="orders-content" id="ordersContent">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-text">请选择患者查看开单信息</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div class="api-status" id="apiStatus"></div>
+    
+    <script>
+        // ============ 全局变量 ============
+        const API_BASE = 'http://localhost:5000';
+        let currentDept = '';
+        let currentSchedule = null;
+        let currentPatient = null;
+        let schedulesData = [];
+        let patientsData = [];
+        let ordersData = [];
+        let nurseInfo = null;
+        
+        // ============ 初始化 ============
+        document.addEventListener('DOMContentLoaded', init);
+        
+        async function init() {
+            updateTime();
+            setInterval(updateTime, 60000);
+            
+            // 检查登录状态
+            const isLoggedIn = await checkLogin();
+            if (!isLoggedIn) {
+                showLoginModal();
+                return;
+            }
+            
+            // 检查API连接
+            const apiAvailable = await checkAPI();
+            if (!apiAvailable) {
+                showApiStatus('API服务未启动，请检查后端服务', 'error');
+                return;
+            }
+            
+            showApiStatus('API连接成功', 'success');
+            await loadClinicSchedules();
+            setupEventListeners();
+        }
+        
+        async function checkLogin() {
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/auth/current`);
+                const result = await res.json();
+                
+                if (result.success) {
+                    nurseInfo = result.data;
+                    // 保存到sessionStorage
+                    sessionStorage.setItem('nurseInfo', JSON.stringify(nurseInfo));
+                    // 更新护士姓名显示
+                    document.getElementById('nurseName').textContent = nurseInfo.name;
+                    // 检查管理员权限
+                    checkAdminPermission();
+                    return true;
+                } else {
+                    return false;
+                }
+            } catch (e) {
+                console.error('检查登录状态失败:', e);
+                return false;
+            }
+        }
+        
+        function showLoginModal() {
+            // 创建登录模态框
+            const modal = document.createElement('div');
+            modal.id = 'loginModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 8px; width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <h2 style="margin-bottom: 20px; font-size: 20px; color: #262626;">🏥 护士登录</h2>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; color: #595959;">工号</label>
+                        <input type="text" id="loginNurseCode" placeholder="请输入工号" style="width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; color: #595959;">密码</label>
+                        <input type="password" id="loginPassword" placeholder="请输入密码" style="width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <button onclick="doLogin()" style="width: 100%; padding: 10px; background: #1890ff; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">登录</button>
+                    <div id="loginError" style="margin-top: 12px; color: #ff4d4f; font-size: 13px; display: none;"></div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 回车键登录
+            document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    doLogin();
+                }
+            });
+        }
+        
+        async function doLogin() {
+            const nurseCode = document.getElementById('loginNurseCode').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const errorEl = document.getElementById('loginError');
+            
+            if (!nurseCode || !password) {
+                errorEl.textContent = '请输入工号和密码';
+                errorEl.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nurse_code: nurseCode,
+                        password: password
+                    })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    // 登录成功，移除登录框
+                    document.getElementById('loginModal').remove();
+                    // 保存护士信息
+                    nurseInfo = result.data;
+                    sessionStorage.setItem('nurseInfo', JSON.stringify(nurseInfo));
+                    // 更新护士姓名显示
+                    document.getElementById('nurseName').textContent = nurseInfo.name;
+                    // 检查管理员权限
+                    checkAdminPermission();
+                    // 重新初始化
+                    init();
+                } else {
+                    errorEl.textContent = result.message || '登录失败';
+                    errorEl.style.display = 'block';
+                }
+            } catch (e) {
+                console.error('登录失败:', e);
+                errorEl.textContent = '登录失败，请重试';
+                errorEl.style.display = 'block';
+            }
+        }
+        
+        async function checkAPI() {
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/health`, { timeout: 3000 });
+                return res.ok;
+            } catch (e) {
+                return false;
+            }
+        }
+        
+        function showApiStatus(message, type) {
+            const el = document.getElementById('apiStatus');
+            el.textContent = message;
+            el.className = 'api-status ' + type;
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+        
+        function updateTime() {
+            document.getElementById('currentTime').textContent = new Date().toLocaleString('zh-CN', { 
+                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', weekday: 'long' 
+            });
+        }
+        
+        // ============ G0078 号别排班 ============
+        async function loadClinicSchedules() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const res = await fetch(`${API_BASE}/api/v1/clinic-schedules?clinic_date=${today}`, {
+                    credentials: 'include'  // 包含session cookie
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    schedulesData = result.data.schedules;
+                    renderDeptSelect(result.data.dept_groups);
+                    renderDoctorList(result.data.dept_groups);
+                } else if (res.status === 401) {
+                    // 未登录，显示登录框
+                    showLoginModal();
+                } else {
+                    showApiStatus('获取号别排班失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                console.error('加载号别排班失败:', e);
+                showApiStatus('加载号别排班失败', 'error');
+            }
+        }
+        
+        function renderDeptSelect(deptGroups) {
+            const select = document.getElementById('deptSelect');
+            let html = '<option value="">全部科室</option>';
+            
+            deptGroups.forEach(dept => {
+                html += `<option value="${dept.dept_name}">${dept.dept_name}</option>`;
+            });
+            
+            select.innerHTML = html;
+        }
+        
+        function renderDoctorList(deptGroups) {
+            const container = document.getElementById('doctorList');
+            
+            if (!deptGroups || deptGroups.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👨‍⚕️</div><div class="empty-state-text">暂无号别排班数据</div></div>';
+                return;
+            }
+            
+            let html = '';
+            deptGroups.forEach(dept => {
+                dept.schedules.forEach(schedule => {
+                    const isActive = currentSchedule && 
+                                   currentSchedule.clinic_label === schedule.clinic_label &&
+                                   currentSchedule.time_desc === schedule.time_desc;
+                    
+                    html += `
+                        <div class="doctor-item ${isActive ? 'active' : ''}" 
+                             data-clinic-label="${schedule.clinic_label}"
+                             data-time-desc="${schedule.time_desc}"
+                             data-dept-name="${schedule.dept_name}"
+                             onclick="selectSchedule('${schedule.clinic_label}', '${schedule.time_desc}', '${schedule.dept_name}')">
+                            <div class="doctor-avatar">${schedule.clinic_label[0]}</div>
+                            <div class="doctor-info">
+                                <div class="doctor-name">${schedule.clinic_label}</div>
+                                <div class="doctor-title">${schedule.time_desc} · 限号${schedule.registration_limits} · 已挂${schedule.registration_num}</div>
+                            </div>
+                            <span class="doctor-count">${schedule.registration_num}</span>
+                        </div>
+                    `;
+                });
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function selectSchedule(clinicLabel, timeDesc, deptName) {
+            currentSchedule = { clinic_label: clinicLabel, time_desc: timeDesc, dept_name: deptName };
+            
+            // 更新UI
+            document.querySelectorAll('.doctor-item').forEach(item => {
+                item.classList.toggle('active', 
+                    item.dataset.clinicLabel === clinicLabel && 
+                    item.dataset.timeDesc === timeDesc
+                );
+            });
+            
+            // 加载患者列表
+            loadPatientRegistrations(clinicLabel, timeDesc);
+        }
+        
+        function refreshSchedules() {
+            loadClinicSchedules();
+        }
+        
+        // ============ G0079 患者挂号 ============
+        async function loadPatientRegistrations(clinicLabel, timeDesc) {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const res = await fetch(`${API_BASE}/api/v1/patient-registrations?visit_date=${today}&clinic_label=${encodeURIComponent(clinicLabel)}&visit_time_desc=${encodeURIComponent(timeDesc)}`, {
+                    credentials: 'include'  // 包含session cookie
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    patientsData = result.data.registrations;
+                    renderPatientList(patientsData);
+                } else if (res.status === 401) {
+                    // 未登录，显示登录框
+                    showLoginModal();
+                } else {
+                    showApiStatus('获取患者列表失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                console.error('加载患者列表失败:', e);
+                showApiStatus('加载患者列表失败', 'error');
+            }
+        }
+        
+        function renderPatientList(patients) {
+            const container = document.getElementById('patientList');
+            document.getElementById('patientCount').textContent = patients.length;
+            
+            if (patients.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">暂无患者</div></div>';
+                return;
+            }
+            
+            container.innerHTML = patients.map(p => `
+                <div class="patient-item ${currentPatient === p.visit_no ? 'active' : ''}" 
+                     data-visit-no="${p.visit_no}"
+                     onclick="selectPatient('${p.visit_no}')">
+                    <div class="patient-header">
+                        <span class="patient-name">${p.name}</span>
+                        <span class="patient-serial">${p.serial_no}</span>
+                    </div>
+                    <div class="patient-info">
+                        <span>${p.sex}</span>
+                        <span>${p.age}岁</span>
+                        <span>卡号: ${p.card_id}</span>
+                    </div>
+                    ${p.fre_date ? `<div class="patient-fre-date" style="font-size: 11px; color: #52c41a; margin-top: 4px;">✅ 报到: ${formatFreDate(p.fre_date)}</div>` : '<div class="patient-fre-date" style="font-size: 11px; color: #faad14; margin-top: 4px;">⏳ 未报到</div>'}
+                </div>
+            `).join('');
+        }
+        
+        function formatFreDate(freDate) {
+            if (!freDate) return '';
+            try {
+                const dt = new Date(freDate);
+                return dt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            } catch (e) {
+                return freDate;
+            }
+        }
+        
+        // ============ G0080 患者开单 ============
+        async function selectPatient(visitNo) {
+            currentPatient = visitNo;
+            
+            // 更新UI
+            document.querySelectorAll('.patient-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.visitNo === visitNo);
+            });
+            
+            // 查找患者信息
+            const patient = patientsData.find(p => p.visit_no === visitNo);
+            if (patient) {
+                renderPatientDetail(patient);
+            }
+            
+            // 加载开单信息
+            await loadPatientOrders(visitNo);
+        }
+        
+        function renderPatientDetail(patient) {
+            document.getElementById('detailName').textContent = patient.name;
+            document.getElementById('detailVisitNo').textContent = `就诊号: ${patient.visit_no}`;
+            document.getElementById('detailSerial').textContent = `序号: ${patient.serial_no}`;
+            
+            document.getElementById('detailInfoGrid').innerHTML = `
+                <div class="detail-info-item">
+                    <span class="detail-info-label">患者ID</span>
+                    <span class="detail-info-value">${patient.patient_id}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">卡号</span>
+                    <span class="detail-info-value">${patient.card_id}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">性别</span>
+                    <span class="detail-info-value">${patient.sex}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">年龄</span>
+                    <span class="detail-info-value">${patient.age}岁</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">费别</span>
+                    <span class="detail-info-value">${patient.charge_type || '-'}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">就诊日期</span>
+                    <span class="detail-info-value">${patient.visit_date}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">午别</span>
+                    <span class="detail-info-value">${patient.visit_time_desc}</span>
+                </div>
+                <div class="detail-info-item">
+                    <span class="detail-info-label">号别</span>
+                    <span class="detail-info-value">${patient.clinic_label}</span>
+                </div>
+                <div class="detail-info-item" style="grid-column: span 2;">
+                    <span class="detail-info-label">报到时间</span>
+                    <span class="detail-info-value" style="color: ${patient.fre_date ? '#52c41a' : '#faad14'};">${patient.fre_date ? formatFreDateTime(patient.fre_date) : '未报到'}</span>
+                </div>
+            `;
+            
+            document.getElementById('patientDetailCard').style.display = 'block';
+        }
+        
+        function formatFreDateTime(freDate) {
+            if (!freDate) return '';
+            try {
+                const dt = new Date(freDate);
+                return dt.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            } catch (e) {
+                return freDate;
+            }
+        }
+        
+        async function loadPatientOrders(visitNo) {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const res = await fetch(`${API_BASE}/api/v1/patient-orders?visit_date=${today}&visit_no=${visitNo}`, {
+                    credentials: 'include'  // 包含session cookie
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    ordersData = result.data.orders;
+                    renderOrders(result.data.class_groups);
+                } else if (res.status === 401) {
+                    // 未登录，显示登录框
+                    showLoginModal();
+                } else {
+                    showApiStatus('获取开单信息失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                console.error('加载开单信息失败:', e);
+                showApiStatus('加载开单信息失败', 'error');
+            }
+        }
+        
+        function renderOrders(classGroups) {
+            const container = document.getElementById('ordersContent');
+            
+            if (!classGroups || Object.keys(classGroups).length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">暂无开单信息</div></div>';
+                return;
+            }
+            
+            // 检查是否有需要扫码的耗材
+            const hasCmcItems = Object.values(classGroups).flat().some(order => order.cmc_flag === '1');
+            if (hasCmcItems) {
+                // 显示耗材扫码提示
+                showCmcAlert();
+            } else {
+                hideCmcAlert();
+            }
+            
+            let html = '';
+            for (const [className, orders] of Object.entries(classGroups)) {
+                html += `
+                    <div class="order-group">
+                        <div class="order-group-header">${className} (${orders.length}项)</div>
+                        <table class="order-table">
+                            <thead>
+                                <tr>
+                                    <th>项目编码</th>
+                                    <th>项目名称</th>
+                                    <th>规格</th>
+                                    <th>用法</th>
+                                    <th>频次</th>
+                                    <th>数量</th>
+                                    <th>单价</th>
+                                    <th>状态</th>
+                                    <th>扫码</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${orders.map(order => `
+                                    <tr>
+                                        <td>${order.item_code}</td>
+                                        <td>${order.item_name}</td>
+                                        <td>${order.package_spec || '-'}</td>
+                                        <td>${order.administration || '-'}</td>
+                                        <td>${order.frequency || '-'}</td>
+                                        <td>${order.quantity} ${order.package_units || ''}</td>
+                                        <td>¥${order.price}</td>
+                                        <td>${order.states || '-'}</td>
+                                        <td>
+                                            ${order.cmc_flag === '1' 
+                                                ? '<span style="color: #fa541c; font-weight: 500;">📦 需扫码</span>' 
+                                                : '<span style="color: #8c8c8c;">-</span>'}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function showCmcAlert() {
+            // 在页面顶部显示耗材扫码提示
+            let alertEl = document.getElementById('cmcAlert');
+            if (!alertEl) {
+                alertEl = document.createElement('div');
+                alertEl.id = 'cmcAlert';
+                alertEl.style.cssText = `
+                    background: #fff2e8;
+                    border: 1px solid #ffbb96;
+                    border-radius: 6px;
+                    padding: 10px 15px;
+                    margin: 0 12px 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 13px;
+                    color: #873800;
+                `;
+                alertEl.innerHTML = `
+                    <span style="font-size: 16px;">📦</span>
+                    <span>该患者有耗材医嘱需要扫码确认，请及时处理</span>
+                `;
+                
+                // 插入到患者详情卡片后面
+                const detailCard = document.getElementById('patientDetailCard');
+                detailCard.parentNode.insertBefore(alertEl, detailCard.nextSibling);
+            }
+            alertEl.style.display = 'flex';
+        }
+        
+        function hideCmcAlert() {
+            const alertEl = document.getElementById('cmcAlert');
+            if (alertEl) {
+                alertEl.style.display = 'none';
+            }
+        }
+        
+        function refreshOrders() {
+            if (currentPatient) {
+                loadPatientOrders(currentPatient);
+            }
+        }
+        
+        // ============ 事件监听 ============
+        function setupEventListeners() {
+            // 科室筛选
+            document.getElementById('deptSelect').addEventListener('change', (e) => {
+                currentDept = e.target.value;
+                filterSchedulesByDept(currentDept);
+            });
+        }
+        
+        function filterSchedulesByDept(deptName) {
+            if (!deptName) {
+                renderDoctorList(schedulesData);
+                return;
+            }
+            
+            const filtered = schedulesData.filter(s => s.dept_name === deptName);
+            const deptGroups = {};
+            
+            filtered.forEach(schedule => {
+                const dept = schedule.dept_name;
+                if (!deptGroups[dept]) {
+                    deptGroups[dept] = {
+                        dept_code: schedule.clinic_dept,
+                        dept_name: dept,
+                        schedules: []
+                    };
+                }
+                deptGroups[dept].schedules.push(schedule);
+            });
+            
+            renderDoctorList(Object.values(deptGroups));
+        }
+        
+        // ============ 导航权限控制 ============
+        function checkAdminPermission() {
+            try {
+                // 从sessionStorage获取护士信息
+                const nurseInfo = JSON.parse(sessionStorage.getItem('nurseInfo') || '{}');
+                const role = nurseInfo.role || '';
+                
+                // 如果是管理员或护士长，显示权限管理导航
+                if (role === 'admin' || role === 'head_nurse') {
+                    document.getElementById('adminNavItem').style.display = 'flex';
+                }
+                
+                // 更新护士姓名显示
+                if (nurseInfo.name) {
+                    document.getElementById('nurseName').textContent = nurseInfo.name;
+                }
+            } catch (error) {
+                console.error('检查管理员权限失败:', error);
+            }
+        }
+    </script>
+</body>
+</html>

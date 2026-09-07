@@ -490,7 +490,22 @@ class HISWebAPIAdapter:
                     "registrations": []
                 }
             
-            oudata = data.get("OUDATA", []) if data else []
+            # 处理QUEDATA节点，提取FRE_DATE报到时间
+            # 根据接口文档，G0079返回的数据结构是CLINICDATA而不是OUDATA
+            oudata = data.get("CLINICDATA", []) if data else []
+            
+            # 如果CLINICDATA为空，尝试从OUDATA获取（兼容旧版本）
+            if not oudata:
+                oudata = data.get("OUDATA", []) if data else []
+            
+            # 处理QUEDATA节点，提取FRE_DATE报到时间
+            for reg in oudata:
+                quedata = reg.get("QUEDATA", [])
+                if quedata and isinstance(quedata, list) and len(quedata) > 0:
+                    # 取第一个QUEDATA节点的FRE_DATE作为报到时间
+                    reg["FRE_DATE"] = quedata[0].get("FRE_DATE")
+                else:
+                    reg["FRE_DATE"] = None
             
             result = {
                 "success": True,
@@ -606,6 +621,11 @@ class HISWebAPIAdapter:
                 }
             
             oudata = data.get("OUDATA", []) if data else []
+            
+            # 确保CMC_FLAG字段存在，默认为'0'
+            for order in oudata:
+                if "CMC_FLAG" not in order or order["CMC_FLAG"] is None:
+                    order["CMC_FLAG"] = "0"
             
             result = {
                 "success": True,
@@ -1129,6 +1149,7 @@ class HISWebAPIAdapter:
                             charge_type = %s,
                             serial_no = %s,
                             pnum = %s,
+                            fre_date = %s,
                             sync_status = 1,
                             sync_time = %s,
                             updated_at = %s
@@ -1142,6 +1163,7 @@ class HISWebAPIAdapter:
                         reg.get("CHARGE_TYPE"),
                         reg.get("SERIAL_NO", 0),
                         reg.get("PNUM", 0),
+                        reg.get("FRE_DATE"),
                         datetime.now(),
                         datetime.now(),
                         registration_id
@@ -1153,9 +1175,9 @@ class HISWebAPIAdapter:
                         INSERT INTO patient_registrations (
                             registration_id, visit_date, visit_no, visit_time_desc,
                             clinic_label, patient_id, card_id, name, sex, age,
-                            charge_type, serial_no, pnum, sync_status, sync_time,
+                            charge_type, serial_no, pnum, fre_date, sync_status, sync_time,
                             created_at, updated_at
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         registration_id,
                         visit_date,
@@ -1170,6 +1192,7 @@ class HISWebAPIAdapter:
                         reg.get("CHARGE_TYPE"),
                         reg.get("SERIAL_NO", 0),
                         reg.get("PNUM", 0),
+                        reg.get("FRE_DATE"),
                         1,
                         datetime.now(),
                         datetime.now(),
@@ -1279,6 +1302,7 @@ class HISWebAPIAdapter:
                             quantity = %s,
                             price = %s,
                             pnum = %s,
+                            cmc_flag = %s,
                             sync_status = 1,
                             sync_time = %s,
                             updated_at = %s
@@ -1303,6 +1327,7 @@ class HISWebAPIAdapter:
                         order.get("QUANTITY", 0),
                         order.get("PRICE", 0),
                         order.get("PNUM", 0),
+                        order.get("CMC_FLAG", "0"),
                         datetime.now(),
                         datetime.now(),
                         order_id
@@ -1316,9 +1341,9 @@ class HISWebAPIAdapter:
                             presc_attr, states, test_no, template_name, presc_date,
                             presc_no, item_no, diagnoses, class_name, item_code,
                             item_name, package_spec, package_units, firm_id,
-                            administration, frequency, quantity, price, pnum,
+                            administration, frequency, quantity, price, pnum, cmc_flag,
                             sync_status, sync_time, created_at, updated_at
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         order_id,
                         visit_date,
@@ -1344,6 +1369,7 @@ class HISWebAPIAdapter:
                         order.get("QUANTITY", 0),
                         order.get("PRICE", 0),
                         order.get("PNUM", 0),
+                        order.get("CMC_FLAG", "0"),
                         1,
                         datetime.now(),
                         datetime.now(),
@@ -1380,6 +1406,134 @@ class HISWebAPIAdapter:
                 "deleted": 0,
                 "total": 0
             }
+    
+    # ============ I0010 门诊护士扫高值耗材码 ============
+    
+    def scan_consumable(
+        self,
+        presc_date: str,
+        presc_no: str,
+        cmc_code: str,
+        item_no: str,
+        item_code: str,
+        oper_code: str,
+        flag: str = "1",
+        use_encryption: bool = False
+    ) -> Dict:
+        """
+        门诊护士扫高值耗材码（I0010接口）
+        
+        Args:
+            presc_date: 处方日期，格式 YYYY-MM-DD HH:MM:SS
+            presc_no: 处方号
+            cmc_code: 高值耗材编码（扫码得到的条码）
+            item_no: 项目序号
+            item_code: 项目编码
+            oper_code: 操作员工号
+            flag: 状态，1-启用，0-停用
+            use_encryption: 是否使用BASE64加密
+            
+        Returns:
+            {
+                "success": True/False,
+                "message": "OK或错误内容"
+            }
+        """
+        oper_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 构建CMCLIST明细
+        cmc_list = [{
+            "PRESC_DATE": presc_date,
+            "PRESC_NO": presc_no,
+            "CMC_CODE": cmc_code,
+            "FLAG": flag,
+            "OPER_CODE": oper_code,
+            "OPER_DATE": oper_date,
+            "ITEM_NO": item_no,
+            "ITEM_CODE": item_code
+        }]
+        
+        mesid = self._generate_mesid()
+        
+        if use_encryption:
+            # 加密方式：内层完整请求体加密后放入INDATA
+            inner_data = {
+                "MESKEY": self.meskey,
+                "MESID": mesid,
+                "MESTYPE": "I0010",
+                "ITEMS": {
+                    "CMCITEM": {
+                        "CMCLIST": cmc_list
+                    }
+                },
+                "INDATA": ""
+            }
+            payload = {
+                "MESKEY": self.meskey,
+                "MESID": mesid,
+                "MESTYPE": "I0010",
+                "ITEMS": {
+                    "CMCITEM": {
+                        "CMCLIST": []
+                    }
+                },
+                "INDATA": self._encode_base64(inner_data)
+            }
+        else:
+            payload = {
+                "MESKEY": self.meskey,
+                "MESID": mesid,
+                "MESTYPE": "I0010",
+                "ITEMS": {
+                    "CMCITEM": {
+                        "CMCLIST": cmc_list
+                    }
+                },
+                "INDATA": ""
+            }
+        
+        url = f"{self.base_url}/api/HisInterface/HisRequst"
+        
+        logger.info(f"I0010扫码请求: PRESC_NO={presc_no}, ITEM_CODE={item_code}, CMC_CODE={cmc_code}")
+        logger.debug(f"I0010请求体: {json.dumps(payload, ensure_ascii=False)}")
+        
+        try:
+            response = self.session.post(
+                url=url,
+                headers=self.headers,
+                json=payload,
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            logger.debug(f"I0010响应: {json.dumps(result, ensure_ascii=False)}")
+            
+            code = result.get("CODE", "-1")
+            message = result.get("MESSAGE", "未知错误")
+            
+            if code == "1":
+                logger.info(f"I0010扫码成功: PRESC_NO={presc_no}, ITEM_CODE={item_code}")
+                return {
+                    "success": True,
+                    "message": message
+                }
+            else:
+                logger.error(f"I0010扫码失败: {message}")
+                return {
+                    "success": False,
+                    "message": message
+                }
+                
+        except requests.exceptions.Timeout:
+            logger.error("I0010请求超时")
+            return {"success": False, "message": "HIS服务连接超时"}
+        except requests.exceptions.ConnectionError:
+            logger.error("I0010连接失败")
+            return {"success": False, "message": "无法连接到HIS服务"}
+        except Exception as e:
+            logger.error(f"I0010请求异常: {e}")
+            return {"success": False, "message": f"扫码请求失败: {str(e)}"}
     
     def health_check(self) -> Dict:
         """

@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>护士权限管理 - 门诊护士工作站</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #001529;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 500;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #1890ff;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+        .btn-danger {
+            background: #ff4d4f;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #ff7875;
+        }
+        .btn-success {
+            background: #52c41a;
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #73d13d;
+        }
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+        .content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }
+        /* 搜索栏 */
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        .search-bar input,
+        .search-bar select {
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .search-bar input {
+            flex: 1;
+        }
+        /* 表格 */
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        th {
+            background: #fafafa;
+            font-weight: 500;
+            color: #666;
+        }
+        tr:hover {
+            background: #f5f5f5;
+        }
+        /* 标签 */
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        .tag-blue {
+            background: #e6f7ff;
+            color: #1890ff;
+        }
+        .tag-green {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+        .tag-orange {
+            background: #fff7e6;
+            color: #fa8c16;
+        }
+        .tag-red {
+            background: #fff1f0;
+            color: #f5222d;
+        }
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #999;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        /* 表单 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-control:focus {
+            border-color: #1890ff;
+            outline: none;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        /* 权限区域 */
+        .permission-section {
+            margin-top: 20px;
+            padding: 16px;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        .permission-section h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #333;
+        }
+        .permission-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .permission-item {
+            padding: 12px;
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+        }
+        .permission-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .permission-desc {
+            font-size: 12px;
+            color: #999;
+        }
+        /* 状态标签 */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .status-active {
+            background: #f6ffed;
+            color: #52c41a;
+        }
+        .status-inactive {
+            background: #fff1f0;
+            color: #f5222d;
+        }
+        /* 操作按钮组 */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👥 护士权限管理</h1>
+            <button class="btn btn-primary" onclick="showCreateModal()">+ 新增护士</button>
+        </div>
+        
+        <div class="content">
+            <!-- 搜索栏 -->
+            <div class="search-bar">
+                <input type="text" id="searchKeyword" placeholder="搜索工号或姓名...">
+                <select id="filterDept">
+                    <option value="">全部科室</option>
+                    <option value="XK">心内科</option>
+                    <option value="XWK">心外科</option>
+                    <option value="NK">内科</option>
+                    <option value="WK">外科</option>
+                </select>
+                <select id="filterStatus">
+                    <option value="">全部状态</option>
+                    <option value="1">启用</option>
+                    <option value="0">停用</option>
+                </select>
+                <button class="btn btn-primary" onclick="loadNurses()">查询</button>
+            </div>
+            
+            <!-- 护士列表 -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>职称</th>
+                            <th>科室</th>
+                            <th>角色</th>
+                            <th>状态</th>
+                            <th>最后登录</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nurseTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+                                加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 创建/编辑护士模态框 -->
+    <div class="modal" id="nurseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">新增护士</span>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="nurseForm">
+                    <input type="hidden" id="nurseId">
+                    
+                    <div class="form-group">
+                        <label class="form-label">工号 *</label>
+                        <input type="text" class="form-control" id="nurseCode" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">姓名 *</label>
+                        <input type="text" class="form-control" id="nurseName" required>
+                    </div>
+                    
+                    <div class="form-group" id="passwordGroup">
+                        <label class="form-label">密码 *</label>
+                        <input type="password" class="form-control" id="password" placeholder="默认: 123456">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">职称</label>
+                        <input type="text" class="form-control" id="title" placeholder="如: 主管护师">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">主要科室 *</label>
+                        <select class="form-control" id="deptCode" required>
+                            <option value="">请选择科室</option>
+                            <option value="XK">心内科</option>
+                            <option value="XWK">心外科</option>
+                            <option value="NK">内科</option>
+                            <option value="WK">外科</option>
+                            <option value="NFMK">内分泌科</option>
+                            <option value="ZYK">中医科</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">楼层</label>
+                        <input type="text" class="form-control" id="floor" placeholder="如: 门诊六层">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">联系电话</label>
+                        <input type="text" class="form-control" id="phone">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" class="form-control" id="email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">角色 *</label>
+                        <div class="checkbox-group" id="roleCheckboxes">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="roles" value="R001">
+                                <span>系统管理员</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="roles" value="R002">
+                                <span>护士长</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="roles" value="R003" checked>
+                                <span>全科护士</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="roles" value="R004">
+                                <span>基础护士</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">管理科室（可多选）</label>
+                        <div class="checkbox-group" id="deptCheckboxes">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="depts" value="XK">
+                                <span>心内科</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="depts" value="XWK">
+                                <span>心外科</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="depts" value="NK">
+                                <span>内科</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="depts" value="WK">
+                                <span>外科</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="depts" value="NFMK">
+                                <span>内分泌科</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="depts" value="ZYK">
+                                <span>中医科</span>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveNurse()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 权限查看模态框 -->
+    <div class="modal" id="permissionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">护士权限详情</span>
+                <button class="modal-close" onclick="closePermissionModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="permissionDetail">
+                <!-- 动态加载 -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closePermissionModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时获取护士列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadNurses();
+        });
+        
+        // 加载护士列表
+        async function loadNurses() {
+            const keyword = document.getElementById('searchKeyword').value;
+            const deptCode = document.getElementById('filterDept').value;
+            const status = document.getElementById('filterStatus').value;
+            
+            try {
+                const params = new URLSearchParams();
+                if (keyword) params.append('keyword', keyword);
+                if (deptCode) params.append('dept_code', deptCode);
+                if (status) params.append('status', status);
+                
+                const response = await fetch(`/api/v1/admin/nurses?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderNurseTable(result.data.nurses);
+                } else {
+                    alert(result.message || '加载失败');
+                }
+            } catch (error) {
+                console.error('加载护士列表失败:', error);
+                alert('加载失败，请重试');
+            }
+        }
+        
+        // 渲染护士表格
+        function renderNurseTable(nurses) {
+            const tbody = document.getElementById('nurseTableBody');
+            
+            if (nurses.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: #999;">
+                            暂无数据
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = nurses.map(nurse => `
+                <tr>
+                    <td>${nurse.nurse_code}</td>
+                    <td>${nurse.name}</td>
+                    <td>${nurse.title || '-'}</td>
+                    <td>
+                        <span class="tag tag-blue">${nurse.dept_name}</span>
+                        ${nurse.dept_names ? nurse.dept_names.split(',').map(d => 
+                            d !== nurse.dept_name ? `<span class="tag tag-green">${d}</span>` : ''
+                        ).join('') : ''}
+                    </td>
+                    <td>
+                        ${nurse.role_names ? nurse.role_names.split(',').map(r => 
+                            `<span class="tag tag-orange">${r}</span>`
+                        ).join('') : '-'}
+                    </td>
+                    <td>
+                        <span class="status-badge ${nurse.status == 1 ? 'status-active' : 'status-inactive'}">
+                            ${nurse.status == 1 ? '启用' : '停用'}
+                        </span>
+                    </td>
+                    <td>${nurse.last_login_time ? formatDateTime(nurse.last_login_time) : '从未登录'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary btn-sm" onclick="editNurse('${nurse.nurse_id}')">编辑</button>
+                            <button class="btn btn-success btn-sm" onclick="viewPermissions('${nurse.nurse_id}')">权限</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteNurse('${nurse.nurse_id}', '${nurse.name}')">删除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 显示创建模态框
+        function showCreateModal() {
+            document.getElementById('modalTitle').textContent = '新增护士';
+            document.getElementById('nurseForm').reset();
+            document.getElementById('nurseId').value = '';
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('nurseModal').classList.add('show');
+        }
+        
+        // 编辑护士
+        async function editNurse(nurseId) {
+            // TODO: 加载护士详情
+            document.getElementById('modalTitle').textContent = '编辑护士';
+            document.getElementById('nurseId').value = nurseId;
+            document.getElementById('passwordGroup').style.display = 'none';
+            document.getElementById('nurseModal').classList.add('show');
+        }
+        
+        // 保存护士
+        async function saveNurse() {
+            const nurseId = document.getElementById('nurseId').value;
+            const nurseCode = document.getElementById('nurseCode').value;
+            const nurseName = document.getElementById('nurseName').value;
+            const password = document.getElementById('password').value;
+            const title = document.getElementById('title').value;
+            const deptCode = document.getElementById('deptCode').value;
+            const floor = document.getElementById('floor').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            
+            // 获取选中的角色
+            const roleIds = Array.from(document.querySelectorAll('input[name="roles"]:checked'))
+                .map(cb => cb.value);
+            
+            // 获取选中的科室
+            const deptCodes = Array.from(document.querySelectorAll('input[name="depts"]:checked'))
+                .map(cb => cb.value);
+            
+            if (!nurseCode || !nurseName || !deptCode) {
+                alert('请填写必填字段');
+                return;
+            }
+            
+            const data = {
+                nurse_code: nurseCode,
+                name: nurseName,
+                title: title,
+                dept_code: deptCode,
+                dept_name: document.getElementById('deptCode').options[document.getElementById('deptCode').selectedIndex].text,
+                floor: floor,
+                phone: phone,
+                email: email,
+                role_ids: roleIds,
+                dept_codes: deptCodes.length > 0 ? deptCodes : [deptCode]
+            };
+            
+            if (!nurseId && password) {
+                data.password = password;
+            }
+            
+            try {
+                const url = nurseId ? `/api/v1/admin/nurses/${nurseId}` : '/api/v1/admin/nurses';
+                const method = nurseId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(nurseId ? '更新成功' : '创建成功');
+                    closeModal();
+                    loadNurses();
+                } else {
+                    alert(result.message || '操作失败');
+                }
+            } catch (error) {
+                console.error('保存护士失败:', error);
+                alert('操作失败，请重试');
+            }
+        }
+        
+        // 删除护士
+        async function deleteNurse(nurseId, nurseName) {
+            if (!confirm(`确定要删除护士"${nurseName}"吗？`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/v1/admin/nurses/${nurseId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('删除成功');
+                    loadNurses();
+                } else {
+                    alert(result.message || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除护士失败:', error);
+                alert('删除失败，请重试');
+            }
+        }
+        
+        // 查看权限
+        async function viewPermissions(nurseId) {
+            try {
+                const response = await fetch(`/api/v1/admin/nurses/${nurseId}/permissions`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderPermissions(result.data.permissions);
+                    document.getElementById('permissionModal').classList.add('show');
+                } else {
+                    alert(result.message || '加载权限失败');
+                }
+            } catch (error) {
+                console.error('加载权限失败:', error);
+                alert('加载权限失败，请重试');
+            }
+        }
+        
+        // 渲染权限详情
+        function renderPermissions(permissions) {
+            const container = document.getElementById('permissionDetail');
+            
+            if (permissions.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">暂无权限</p>';
+                return;
+            }
+            
+            // 按分类分组
+            const queryPerms = permissions.filter(p => p.category === 'query');
+            const managePerms = permissions.filter(p => p.category === 'manage');
+            
+            container.innerHTML = `
+                ${queryPerms.length > 0 ? `
+                    <div class="permission-section">
+                        <h3>查询权限</h3>
+                        <div class="permission-grid">
+                            ${queryPerms.map(p => `
+                                <div class="permission-item">
+                                    <div class="permission-name">${p.permission_name}</div>
+                                    <div class="permission-desc">${p.permission_code}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${managePerms.length > 0 ? `
+                    <div class="permission-section">
+                        <h3>管理权限</h3>
+                        <div class="permission-grid">
+                            ${managePerms.map(p => `
+                                <div class="permission-item">
+                                    <div class="permission-name">${p.permission_name}</div>
+                                    <div class="permission-desc">${p.permission_code}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('nurseModal').classList.remove('show');
+        }
+        
+        function closePermissionModal() {
+            document.getElementById('permissionModal').classList.remove('show');
+        }
+        
+        // 格式化日期时间
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return '';
+            try {
+                const dt = new Date(dateTimeStr);
+                return dt.toLocaleString('zh-CN');
+            } catch (e) {
+                return dateTimeStr;
+            }
+        }
+    </script>
+</body>
+</html>

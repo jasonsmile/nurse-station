@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>患者查询 - 门诊护士工作站</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: #f0f2f5;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        /* 左侧查询面板 */
+        .query-panel {
+            width: 350px;
+            background: #fff;
+            border-right: 1px solid #e8e8e8;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            padding: 16px;
+            background: #001529;
+            color: #fff;
+        }
+        .panel-header h2 {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .query-form {
+            padding: 20px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-control:focus {
+            border-color: #1890ff;
+            outline: none;
+        }
+        .radio-group {
+            display: flex;
+            gap: 16px;
+        }
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #1890ff;
+            color: #fff;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+        /* 患者信息卡片 */
+        .patient-info-card {
+            padding: 16px;
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            margin: 16px;
+            border-radius: 4px;
+            display: none;
+        }
+        .patient-info-card.show {
+            display: block;
+        }
+        .patient-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .patient-detail {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.8;
+        }
+        /* 右侧结果区域 */
+        .result-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .result-header {
+            padding: 16px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .result-count {
+            color: #666;
+            font-size: 14px;
+        }
+        .result-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        /* 就诊记录卡片 */
+        .visit-card {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .visit-header {
+            padding: 12px 16px;
+            background: #fafafa;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .visit-date {
+            font-weight: 600;
+            color: #333;
+        }
+        .visit-dept {
+            color: #1890ff;
+            font-size: 14px;
+        }
+        .visit-body {
+            padding: 16px;
+        }
+        .visit-info {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .info-item {
+            font-size: 13px;
+        }
+        .info-label {
+            color: #999;
+            margin-right: 4px;
+        }
+        .info-value {
+            color: #333;
+        }
+        /* 处方表格 */
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .order-table th,
+        .order-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .order-table th {
+            background: #fafafa;
+            font-weight: 500;
+            color: #666;
+        }
+        .order-table tr:hover {
+            background: #f5f5f5;
+        }
+        .cmc-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #fff2e8;
+            color: #fa541c;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        /* 权限提示 */
+        .permission-notice {
+            padding: 12px 16px;
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            margin: 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #874d00;
+        }
+        /* 报到时间 */
+        .fre-date {
+            color: #52c41a;
+            font-size: 12px;
+        }
+        .no-fre-date {
+            color: #faad14;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧查询面板 -->
+        <div class="query-panel">
+            <div class="panel-header">
+                <h2>🔍 患者查询</h2>
+            </div>
+            
+            <div class="query-form">
+                <div class="form-group">
+                    <label class="form-label">查询方式</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="queryType" value="patient_id" checked>
+                            <span>病历号</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="queryType" value="card_id">
+                            <span>卡号</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">查询值</label>
+                    <input type="text" class="form-control" id="queryValue" placeholder="请输入病历号或卡号">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">开始日期</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">结束日期</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+                
+                <button class="btn btn-primary" onclick="searchPatient()">查询</button>
+            </div>
+            
+            <!-- 患者信息卡片 -->
+            <div class="patient-info-card" id="patientInfoCard">
+                <div class="patient-name" id="patientName"></div>
+                <div class="patient-detail" id="patientDetail"></div>
+            </div>
+        </div>
+        
+        <!-- 右侧结果区域 -->
+        <div class="result-panel">
+            <div class="result-header">
+                <span class="result-title">就诊记录</span>
+                <span class="result-count" id="resultCount">共 0 条记录</span>
+            </div>
+            
+            <div class="result-content" id="resultContent">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div>请输入查询条件进行查询</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化日期
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+        
+        // 查询患者
+        async function searchPatient() {
+            const queryType = document.querySelector('input[name="queryType"]:checked').value;
+            const queryValue = document.getElementById('queryValue').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!queryValue) {
+                alert('请输入查询值');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/v1/patient-query/search?query_type=${queryType}&query_value=${encodeURIComponent(queryValue)}&start_date=${startDate}&end_date=${endDate}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderResult(result.data);
+                } else {
+                    alert(result.message || '查询失败');
+                }
+            } catch (error) {
+                console.error('查询失败:', error);
+                alert('查询失败，请重试');
+            }
+        }
+        
+        // 渲染查询结果
+        function renderResult(data) {
+            const resultContent = document.getElementById('resultContent');
+            const resultCount = document.getElementById('resultCount');
+            const patientInfoCard = document.getElementById('patientInfoCard');
+            
+            resultCount.textContent = `共 ${data.total_count} 条记录`;
+            
+            // 显示患者信息
+            if (data.patient_info) {
+                document.getElementById('patientName').textContent = data.patient_info.name;
+                document.getElementById('patientDetail').innerHTML = `
+                    病历号: ${data.patient_info.patient_id}<br>
+                    卡号: ${data.patient_info.card_id}<br>
+                    性别: ${data.patient_info.sex} | 年龄: ${data.patient_info.age}岁<br>
+                    费别: ${data.patient_info.charge_type || '-'}
+                `;
+                patientInfoCard.classList.add('show');
+            } else {
+                patientInfoCard.classList.remove('show');
+            }
+            
+            // 显示就诊记录
+            if (data.visits.length === 0) {
+                resultContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>未找到就诊记录</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 权限提示
+            let permissionNotice = '';
+            if (!data.can_query_prescription) {
+                permissionNotice = `
+                    <div class="permission-notice">
+                        ⚠️ 您没有处方查询权限，只能查看就诊记录
+                    </div>
+                `;
+            }
+            
+            // 渲染就诊记录
+            const visitsHtml = data.visits.map(visit => `
+                <div class="visit-card">
+                    <div class="visit-header">
+                        <span class="visit-date">${visit.visit_date} ${visit.visit_time_desc}</span>
+                        <span class="visit-dept">${visit.dept_name || visit.clinic_label}</span>
+                    </div>
+                    <div class="visit-body">
+                        <div class="visit-info">
+                            <div class="info-item">
+                                <span class="info-label">就诊号:</span>
+                                <span class="info-value">${visit.visit_no}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">序号:</span>
+                                <span class="info-value">${visit.serial_no}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">报到:</span>
+                                <span class="${visit.fre_date ? 'fre-date' : 'no-fre-date'}">
+                                    ${visit.fre_date ? formatDateTime(visit.fre_date) : '未报到'}
+                                </span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">处方:</span>
+                                <span class="info-value">${visit.order_count} 项</span>
+                                ${visit.cmc_count > 0 ? `<span class="cmc-badge">${visit.cmc_count} 项需扫码</span>` : ''}
+                            </div>
+                        </div>
+                        
+                        ${visit.orders && visit.orders.length > 0 ? `
+                            <table class="order-table">
+                                <thead>
+                                    <tr>
+                                        <th>项目类别</th>
+                                        <th>项目编码</th>
+                                        <th>项目名称</th>
+                                        <th>规格</th>
+                                        <th>用法</th>
+                                        <th>数量</th>
+                                        <th>单价</th>
+                                        <th>状态</th>
+                                        <th>扫码</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${visit.orders.map(order => `
+                                        <tr>
+                                            <td>${order.class_name}</td>
+                                            <td>${order.item_code}</td>
+                                            <td>${order.item_name}</td>
+                                            <td>${order.package_spec || '-'}</td>
+                                            <td>${order.administration || '-'}</td>
+                                            <td>${order.quantity}</td>
+                                            <td>¥${order.price}</td>
+                                            <td>${order.states || '-'}</td>
+                                            <td>${order.cmc_flag === '1' ? '<span class="cmc-badge">需扫码</span>' : '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            resultContent.innerHTML = permissionNotice + visitsHtml;
+        }
+        
+        // 格式化日期时间
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return '';
+            try {
+                const dt = new Date(dateTimeStr);
+                return dt.toLocaleString('zh-CN', { 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            } catch (e) {
+                return dateTimeStr;
+            }
+        }
+        
+        // 回车键查询
+        document.getElementById('queryValue').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchPatient();
+            }
+        });
+    </script>
+</body>
+</html>
