@@ -232,9 +232,189 @@
             color: #faad14;
             font-size: 12px;
         }
+        
+        /* 扫码功能样式 */
+        .scan-btn {
+            padding: 4px 12px;
+            background: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .scan-btn:hover {
+            background: #40a9ff;
+        }
+        .scan-btn:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+        .scan-btn.scanned {
+            background: #52c41a;
+        }
+        .scan-btn.scanned:hover {
+            background: #73d13d;
+        }
+        
+        /* 扫码模态框 */
+        .scan-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .scan-modal.active {
+            display: flex;
+        }
+        .scan-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 500px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .scan-modal-header {
+            margin-bottom: 20px;
+        }
+        .scan-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #262626;
+            margin-bottom: 8px;
+        }
+        .scan-modal-subtitle {
+            font-size: 13px;
+            color: #8c8c8c;
+        }
+        
+        .scan-form-group {
+            margin-bottom: 16px;
+        }
+        .scan-form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #595959;
+            font-weight: 500;
+        }
+        .scan-form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .scan-form-input:focus {
+            border-color: #1890ff;
+            outline: none;
+        }
+        
+        .scan-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+        .btn-modal-cancel {
+            background: #f0f0f0;
+            color: #595959;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-modal-cancel:hover {
+            background: #e0e0e0;
+        }
+        .btn-modal-submit {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-modal-submit:hover {
+            background: #40a9ff;
+        }
+        
+        .scan-result {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: none;
+        }
+        .scan-result.success {
+            background: #f6ffed;
+            color: #52c41a;
+            border: 1px solid #b7eb8f;
+            display: block;
+        }
+        .scan-result.error {
+            background: #fff1f0;
+            color: #f5222d;
+            border: 1px solid #ffa39e;
+            display: block;
+        }
+        /* 顶部导航 */
+        .top-nav {
+            background: #001529;
+            color: #fff;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-nav h2 {
+            font-size: 18px;
+            font-weight: 500;
+            margin: 0;
+        }
+        .top-nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .btn-back {
+            color: #fff;
+            text-decoration: none;
+            padding: 6px 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .btn-back:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.5);
+        }
+        .container {
+            display: flex;
+            height: calc(100vh - 52px);
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
+    <div class="top-nav">
+        <div class="top-nav-left">
+            <a href="index.html" class="btn-back">← 返回工作台</a>
+            <h2>🔍 患者查询</h2>
+        </div>
+        <div>
+            <span style="font-size: 13px; color: rgba(255,255,255,0.7);">CVOnto 护士站</span>
+        </div>
+    </div>
     <div class="container">
         <!-- 左侧查询面板 -->
         <div class="query-panel">
@@ -298,11 +478,37 @@
         </div>
     </div>
 
+    <!-- 扫码模态框 -->
+    <div class="scan-modal" id="scanModal">
+        <div class="scan-modal-content">
+            <div class="scan-modal-header">
+                <div class="scan-modal-title">📦 高值耗材扫码</div>
+                <div class="scan-modal-subtitle" id="scanModalSubtitle">请扫描或输入耗材条码</div>
+            </div>
+            
+            <div class="scan-form-group">
+                <label class="scan-form-label">耗材条码</label>
+                <input type="text" class="scan-form-input" id="cmcCodeInput" placeholder="请扫描或输入耗材条码" autofocus>
+            </div>
+            
+            <div class="scan-result" id="scanResult"></div>
+            
+            <div class="scan-modal-actions">
+                <button class="btn-modal-cancel" onclick="closeScanModal()">取消</button>
+                <button class="btn-modal-submit" onclick="submitScan()">确认扫码</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 初始化日期
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('startDate').value = today;
         document.getElementById('endDate').value = today;
+        
+        // 全局变量
+        let currentScanItem = null;
+        let currentVisitData = null;
         
         // 查询患者
         async function searchPatient() {
@@ -321,6 +527,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
+                    currentVisitData = result.data;
                     renderResult(result.data);
                 } else {
                     alert(result.message || '查询失败');
@@ -338,6 +545,16 @@
             const patientInfoCard = document.getElementById('patientInfoCard');
             
             resultCount.textContent = `共 ${data.total_count} 条记录`;
+            
+            // 调试信息
+            console.log('查询结果数据:', data);
+            if (data.visits && data.visits.length > 0) {
+                console.log('第一条就诊记录:', data.visits[0]);
+                if (data.visits[0].orders && data.visits[0].orders.length > 0) {
+                    console.log('第一条开单记录:', data.visits[0].orders[0]);
+                    console.log('cmc_flag值:', data.visits[0].orders[0].cmc_flag);
+                }
+            }
             
             // 显示患者信息
             if (data.patient_info) {
@@ -420,7 +637,13 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${visit.orders.map(order => `
+                                    ${visit.orders.map(order => {
+                                        // 确保cmc_flag是字符串类型
+                                        const cmcFlag = String(order.cmc_flag || '0');
+                                        const needsScan = cmcFlag === '1';
+                                        const isScanned = order.scanned === true;
+                                        
+                                        return `
                                         <tr>
                                             <td>${order.class_name}</td>
                                             <td>${order.item_code}</td>
@@ -430,9 +653,18 @@
                                             <td>${order.quantity}</td>
                                             <td>¥${order.price}</td>
                                             <td>${order.states || '-'}</td>
-                                            <td>${order.cmc_flag === '1' ? '<span class="cmc-badge">需扫码</span>' : '-'}</td>
+                                            <td>
+                                                ${needsScan 
+                                                    ? `<button class="scan-btn ${isScanned ? 'scanned' : ''}" 
+                                                              onclick="openScanModal('${visit.visit_date}', '${order.presc_no}', '${order.item_no}', '${order.item_code}', '${order.item_name}', '${order.presc_date || visit.visit_date}')"
+                                                              ${isScanned ? 'disabled' : ''}>
+                                                          ${isScanned ? '✅ 已扫码' : '📦 扫码'}
+                                                       </button>` 
+                                                    : '<span style="color: #8c8c8c;">-</span>'}
+                                            </td>
                                         </tr>
-                                    `).join('')}
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         ` : ''}
@@ -441,6 +673,146 @@
             `).join('');
             
             resultContent.innerHTML = permissionNotice + visitsHtml;
+        }
+        
+        // 打开扫码模态框
+        function openScanModal(visitDate, prescNo, itemNo, itemCode, itemName, prescDate) {
+            // 如果没有提供prescDate，使用visitDate加上当前时间
+            if (!prescDate || prescDate === 'undefined' || prescDate === 'null') {
+                prescDate = visitDate + ' ' + new Date().toTimeString().split(' ')[0];
+            }
+            
+            // 确保presc_date格式正确 (YYYY-MM-DD HH:MM:SS)
+            if (prescDate.length === 10) {
+                // 只有日期部分，添加时间
+                prescDate = prescDate + ' ' + new Date().toTimeString().split(' ')[0];
+            }
+            
+            // 如果日期格式是 GMT 格式，转换为 YYYY-MM-DD HH:MM:SS
+            if (prescDate.includes('GMT')) {
+                const dt = new Date(prescDate);
+                if (!isNaN(dt.getTime())) {
+                    const year = dt.getFullYear();
+                    const month = String(dt.getMonth() + 1).padStart(2, '0');
+                    const day = String(dt.getDate()).padStart(2, '0');
+                    const hours = String(dt.getHours()).padStart(2, '0');
+                    const minutes = String(dt.getMinutes()).padStart(2, '0');
+                    const seconds = String(dt.getSeconds()).padStart(2, '0');
+                    prescDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                }
+            }
+            
+            currentScanItem = {
+                visitDate: visitDate,
+                prescNo: prescNo,
+                itemNo: itemNo,
+                itemCode: itemCode,
+                itemName: itemName,
+                prescDate: prescDate
+            };
+            
+            document.getElementById('scanModalSubtitle').textContent = `耗材: ${itemName} (${itemCode})`;
+            document.getElementById('cmcCodeInput').value = '';
+            document.getElementById('scanResult').style.display = 'none';
+            document.getElementById('scanModal').classList.add('active');
+            
+            // 聚焦到输入框
+            setTimeout(() => {
+                document.getElementById('cmcCodeInput').focus();
+            }, 100);
+        }
+        
+        // 关闭扫码模态框
+        function closeScanModal() {
+            document.getElementById('scanModal').classList.remove('active');
+            currentScanItem = null;
+        }
+        
+        // 提交扫码
+        async function submitScan() {
+            const cmcCode = document.getElementById('cmcCodeInput').value.trim();
+            
+            if (!cmcCode) {
+                showScanResult('请输入耗材条码', 'error');
+                return;
+            }
+            
+            if (!currentScanItem) {
+                showScanResult('扫码信息丢失，请重试', 'error');
+                return;
+            }
+            
+            // 调试信息
+            console.log('扫码请求参数:', {
+                presc_date: currentScanItem.prescDate,
+                presc_no: currentScanItem.prescNo,
+                cmc_code: cmcCode,
+                item_no: currentScanItem.itemNo,
+                item_code: currentScanItem.itemCode
+            });
+            
+            // 验证日期格式
+            const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+            if (!dateRegex.test(currentScanItem.prescDate)) {
+                console.warn('警告: 日期格式可能不正确:', currentScanItem.prescDate);
+            }
+            
+            try {
+                const res = await fetch('/api/v1/scan-consumable', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        presc_date: currentScanItem.prescDate,
+                        presc_no: currentScanItem.prescNo,
+                        cmc_code: cmcCode,
+                        item_no: currentScanItem.itemNo,
+                        item_code: currentScanItem.itemCode
+                    })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    showScanResult('扫码成功！', 'success');
+                    
+                    // 更新本地数据
+                    if (currentVisitData) {
+                        for (let visit of currentVisitData.visits) {
+                            if (visit.orders) {
+                                for (let order of visit.orders) {
+                                    if (order.presc_no === currentScanItem.prescNo && 
+                                        order.item_no === currentScanItem.itemNo && 
+                                        order.item_code === currentScanItem.itemCode) {
+                                        order.scanned = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 重新渲染列表
+                    setTimeout(() => {
+                        renderResult(currentVisitData);
+                        closeScanModal();
+                    }, 1500);
+                } else {
+                    showScanResult('扫码失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                console.error('扫码失败:', e);
+                showScanResult('扫码失败，请重试', 'error');
+            }
+        }
+        
+        // 显示扫码结果
+        function showScanResult(message, type) {
+            const resultEl = document.getElementById('scanResult');
+            resultEl.textContent = message;
+            resultEl.className = 'scan-result ' + type;
         }
         
         // 格式化日期时间
@@ -463,6 +835,13 @@
         document.getElementById('queryValue').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 searchPatient();
+            }
+        });
+        
+        // 扫码输入框回车事件
+        document.getElementById('cmcCodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitScan();
             }
         });
     </script>

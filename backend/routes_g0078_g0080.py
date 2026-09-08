@@ -628,8 +628,36 @@ def scan_consumable():
         if not all([presc_date, presc_no, cmc_code, item_no, item_code]):
             return error_response("缺少必要参数: presc_date, presc_no, cmc_code, item_no, item_code", "INVALID_PARAMS")
         
-        # 获取当前登录护士工号作为操作员
+        # 格式化处方日期为 YYYY-MM-DD HH:MM:SS
+        try:
+            from datetime import datetime
+            # 尝试解析各种日期格式
+            dt = datetime.strptime(presc_date, '%Y-%m-%d %H:%M:%S')
+            presc_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            try:
+                dt = datetime.strptime(presc_date, '%a, %d %b %Y %H:%M:%S GMT')
+                presc_date = dt.strftime('%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                # 如果无法解析，保持原样（可能已经是正确格式）
+                pass
+        
+        # 获取当前登录护士工号作为操作员（使用nurse_code，不是name）
         oper_code = session.get('nurse_code') or data.get('oper_code', '')
+        
+        # 如果没有操作员工号，尝试从session中获取
+        if not oper_code:
+            # 从数据库查询当前登录用户的nurse_code
+            from db import db
+            with db.get_cursor() as cursor:
+                cursor.execute("SELECT nurse_code FROM nurses WHERE nurse_id = %s", (session.get('nurse_id'),))
+                row = cursor.fetchone()
+                if row:
+                    oper_code = row['nurse_code']
+        
+        # 如果没有操作员工号，使用默认值
+        if not oper_code:
+            oper_code = 'SYSTEM'
         
         adapter = get_his_adapter()
         if not adapter:
@@ -637,16 +665,20 @@ def scan_consumable():
         
         use_encryption = HIS_WEBAPI_CONFIG.get('use_encryption', False)
         
+        logger.info(f"扫码请求参数: presc_date={presc_date}, presc_no={presc_no}, cmc_code={cmc_code}, item_no={item_no}, item_code={item_code}, oper_code={oper_code}")
+        
         result = adapter.scan_consumable(
             presc_date=presc_date,
             presc_no=presc_no,
             cmc_code=cmc_code,
-            item_no=str(item_no),
+            item_no=item_no,
             item_code=item_code,
             oper_code=oper_code,
             flag="1",
             use_encryption=use_encryption
         )
+        
+        logger.info(f"扫码结果: {result}")
         
         if result.get('success'):
             return success_response(result, "耗材扫码保存成功")

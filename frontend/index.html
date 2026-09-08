@@ -85,13 +85,31 @@
         .nav-item:hover { background: rgba(255,255,255,0.2); }
         .nav-item.active { background: rgba(255,255,255,0.3); font-weight: 500; }
         .nav-icon { font-size: 16px; }
+        /* 退出登录按钮 */
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.5);
+        }
     </style>
 </head>
 <body>
     <header class="header">
         <h1>🏥 CVOnto 护士站 - 门诊分诊系统</h1>
         <div class="nav-menu">
-            <a href="nurse_station_g0078_g0080.html" class="nav-item active">
+            <a href="index.html" class="nav-item active">
                 <span class="nav-icon">📋</span>
                 <span>工作台</span>
             </a>
@@ -107,6 +125,7 @@
         <div class="header-info">
             <span>👤 当前护士：<span id="nurseName">李护士</span></span>
             <span id="currentTime">--</span>
+            <button class="btn-logout" onclick="doLogout()" title="退出登录">🚪 退出</button>
         </div>
     </header>
     
@@ -243,6 +262,28 @@
                 console.error('检查登录状态失败:', e);
                 return false;
             }
+        }
+        
+        async function doLogout() {
+            if (!confirm('确定要退出登录吗？')) {
+                return;
+            }
+            
+            try {
+                await fetch(`${API_BASE}/api/v1/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (e) {
+                console.error('退出请求失败:', e);
+            }
+            
+            // 清除本地存储
+            sessionStorage.removeItem('nurseInfo');
+            nurseInfo = null;
+            
+            // 刷新页面
+            window.location.reload();
         }
         
         function showLoginModal() {

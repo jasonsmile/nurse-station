@@ -101,15 +101,23 @@ def health_check():
     })
 
 # ============ 静态文件服务 ============
+# 获取前端文件目录路径
+if os.name == 'nt':
+    # Windows环境
+    frontend_dir = os.path.join(os.path.dirname(current_dir), 'frontend')
+else:
+    # Linux环境
+    frontend_dir = '/opt/nurse-station/frontend'
+
 @app.route('/')
 def index():
     """首页"""
-    return send_from_directory('/opt/nurse-station/frontend', 'index.html')
+    return send_from_directory(frontend_dir, 'index.html')
 
 @app.route('/<path:path>')
 def static_files(path):
     """静态文件"""
-    return send_from_directory('/opt/nurse-station/frontend', path)
+    return send_from_directory(frontend_dir, path)
 
 # ============ 手动同步接口 ============
 @app.route('/api/v1/sync/trigger', methods=['POST'])
