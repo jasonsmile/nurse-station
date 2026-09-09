@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-API 路由定义 - G0078/G0079/G0080 版本
-基于HIS新接口的门诊护士站API
+================================================================================
+软件名称：北京医院门诊护士工作站
+文件名称：routes_g0078_g0080.py
+功能描述：门诊护士站 API 路由，提供号别排班、患者挂号、患者开单及耗材扫码服务
+开发单位：北京医院
+开发日期：2026年8月
+版本号：V1.0
+================================================================================
 """
 
 from flask import Blueprint, request, jsonify, session
@@ -642,22 +648,23 @@ def scan_consumable():
                 # 如果无法解析，保持原样（可能已经是正确格式）
                 pass
         
-        # 获取当前登录护士工号作为操作员（使用nurse_code，不是name）
-        oper_code = session.get('nurse_code') or data.get('oper_code', '')
-        
-        # 如果没有操作员工号，尝试从session中获取
+        # I0010 的 OPER_CODE 必须从当前护士的数据库记录获取，不使用前端传参或默认值。
+        nurse_id = session.get('nurse_id')
+        with db.get_cursor() as cursor:
+            cursor.execute(
+                "SELECT nurse_code FROM nurses WHERE nurse_id = %s",
+                (nurse_id,)
+            )
+            nurse = cursor.fetchone()
+
+        oper_code = (nurse or {}).get('nurse_code', '').strip()
         if not oper_code:
-            # 从数据库查询当前登录用户的nurse_code
-            from db import db
-            with db.get_cursor() as cursor:
-                cursor.execute("SELECT nurse_code FROM nurses WHERE nurse_id = %s", (session.get('nurse_id'),))
-                row = cursor.fetchone()
-                if row:
-                    oper_code = row['nurse_code']
-        
-        # 如果没有操作员工号，使用默认值
-        if not oper_code:
-            oper_code = 'SYSTEM'
+            logger.warning(f"扫码失败：护士 {nurse_id} 未配置 HIS 操作员编码 nurse_code")
+            return error_response(
+                "当前护士未配置 HIS 操作员编码，请在护士信息中维护 nurse_code",
+                "HIS_OPERATOR_CODE_NOT_CONFIGURED",
+                400
+            )
         
         adapter = get_his_adapter()
         if not adapter:

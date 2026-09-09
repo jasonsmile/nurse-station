@@ -6,9 +6,9 @@
 
 | 项目 | 当前值 |
 | --- | --- |
-| 内部访问名称 | `nurse-station.hospital.internal` |
+| 内部访问名称 | `nurse-station.bjyy.internal` |
 | 服务器 IP | `172.27.107.40` |
-| 访问地址 | `http://nurse-station.hospital.internal/` |
+| 访问地址 | `http://nurse-station.bjyy.internal/` |
 | 适用范围 | 已配置 hosts 的指定护士站电脑 |
 | 协议 | HTTP（内网） |
 
@@ -23,14 +23,14 @@ C:\Windows\System32\drivers\etc\hosts
 在文件末尾增加：
 
 ```text
-172.27.107.40 nurse-station.hospital.internal
+172.27.107.40 nurse-station.bjyy.internal
 ```
 
 保存后执行：
 
 ```bat
 ipconfig /flushdns
-ping nurse-station.hospital.internal
+ping nurse-station.bjyy.internal
 ```
 
 解析结果应为 `172.27.107.40`，随后使用上述访问地址打开系统。
@@ -44,7 +44,7 @@ ping nurse-station.hospital.internal
 ```nginx
 server {
     listen 80 default_server;
-    server_name nurse-station.hospital.internal 172.27.107.40;
+    server_name nurse-station.bjyy.internal 172.27.107.40;
 
     root /opt/nurse-station/frontend;
     index index.html;

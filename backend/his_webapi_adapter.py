@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-HIS WebAPI 适配层 - G0076接口专用
-负责与HIS系统的G0076接口通信，获取医生信息
+================================================================================
+软件名称：北京医院门诊护士工作站
+文件名称：his_webapi_adapter.py
+功能描述：HIS WebAPI 适配器，实现 G0078、G0079、G0080、I0010 等接口对接
+开发单位：北京医院
+开发日期：2026年8月
+版本号：V1.0
+================================================================================
 """
 
 import requests
@@ -1520,7 +1526,7 @@ class HISWebAPIAdapter:
                 "INDATA": ""
             }
 
-        url = f"{self.base_url}/api/HisInterface/HisRequst"
+        url = f"{self.base_url}/api/HisInterface/HisRequstAdd"
 
         logger.info(f"I0010扫码请求: PRESC_NO={presc_no}, ITEM_CODE={item_code}, CMC_CODE={cmc_code}")
         logger.info(f"I0010 MESID: {mesid}")

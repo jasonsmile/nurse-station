@@ -163,6 +163,12 @@ def search_patient():
                     """, (visit['visit_date'], visit['visit_no']))
 
                     orders = cursor.fetchall()
+                    # MySQL DATETIME 由驱动返回 datetime 对象；在 JSON 响应前显式格式化，
+                    # 避免 Flask 自动序列化为 GMT 文本并引入时区偏移。
+                    for order in orders:
+                        presc_date = order.get('presc_date')
+                        if isinstance(presc_date, datetime):
+                            order['presc_date'] = presc_date.strftime('%Y-%m-%d %H:%M:%S')
                     visit['orders'] = orders
                     visit['order_count'] = len(orders)
                     visit['cmc_count'] = sum(1 for o in orders if o.get('cmc_flag') == '1')

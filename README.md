@@ -1,6 +1,7 @@
 # nurse-station 主应用操作手册
 
-本目录是护士站主应用的发布包。架构为：宿主机 Nginx 提供 `index.html` 并代理 API；Docker 容器运行 Flask/Gunicorn；MySQL 使用宿主机已有服务。
+本目录是护士站主应用的发布包。架构为：宿主机 Nginx 提供 `index.html` 并代理 API；Docker 容器运行 Flask/Gunicorn；MySQL
+使用宿主机已有服务。
 
 `his-sync/` 是单独的手工 HIS 医生同步任务，操作命令见 `his-sync/README.md`。
 
@@ -21,8 +22,6 @@ clinical-workstation-release/
 ## 1. Windows 本地构建主应用镜像
 
 ```powershell
-Set-Location "D:\WorkSpace\Nurse_station\clinical-workstation-release"
-
 docker build --platform linux/amd64 -t nurse-station:0.1.0 .
 ```
 
