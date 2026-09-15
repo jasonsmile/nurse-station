@@ -82,11 +82,12 @@ def login():
         if not password:
             return error_response("请输入密码", "MISSING_PASSWORD")
         
-        # 查询护士信息
+        # 查询护士信息（包含多科室字段）
         with db.get_cursor() as cursor:
             cursor.execute("""
                 SELECT nurse_id, nurse_code, name, password_hash, title,
-                       dept_code, dept_name, role, status
+                       dept_code, dept_name, dept_code2, dept_code3, dept_code4,
+                       dept_code5, dept_code6, floor, role, status
                 FROM nurses
                 WHERE nurse_code = %s
             """, (nurse_code,))
@@ -145,21 +146,50 @@ def login():
         session['role'] = nurse['role']
         session['session_id'] = session_id
         
-        # 查询护士关联的科室列表（多科室支持）
+        # 从 nurses 表的 dept_code + dept_code2~dept_code6 构建多科室列表
         dept_codes = []
         dept_names = []
         try:
-            with db.get_cursor() as cursor:
-                cursor.execute("""
-                    SELECT dept_code, dept_name FROM nurse_dept_relations
-                    WHERE nurse_id = %s AND status = 1
-                    ORDER BY is_primary DESC, dept_code
-                """, (nurse['nurse_id'],))
-                results = cursor.fetchall()
-                dept_codes = [row['dept_code'] for row in results]
-                dept_names = [row['dept_name'] for row in results]
+            # 收集所有非空科室编码
+            raw_codes = [nurse['dept_code']]
+            for i in range(2, 7):
+                code = nurse.get(f'dept_code{i}')
+                if code and code.strip():
+                    raw_codes.append(code.strip())
+            
+            # 去重并保持顺序
+            seen = set()
+            unique_codes = []
+            for c in raw_codes:
+                if c and c not in seen:
+                    seen.add(c)
+                    unique_codes.append(c)
+            
+            # 用 LIKE 前缀匹配从 clinic_schedules 查询科室名称
+            # （dept_code 可能是一级代码如 7101，clinic_dept 是具体代码如 710101）
+            if unique_codes:
+                with db.get_cursor() as cursor:
+                    like_conditions = ' OR '.join(['clinic_dept LIKE %s'] * len(unique_codes))
+                    like_params = [f"{code}%" for code in unique_codes]
+                    cursor.execute(f"""
+                        SELECT DISTINCT clinic_dept, dept_name FROM clinic_schedules
+                        WHERE {like_conditions}
+                    """, like_params)
+                    rows = cursor.fetchall()
+                    
+                    # 为每个 dept_code 找到匹配的 dept_name（取第一个匹配到的）
+                    dept_name_map = {}
+                    for code in unique_codes:
+                        for row in rows:
+                            if row['clinic_dept'].startswith(code):
+                                dept_name_map[code] = row['dept_name']
+                                break
+                
+                for code in unique_codes:
+                    dept_codes.append(code)
+                    dept_names.append(dept_name_map.get(code, nurse['dept_name'] if code == nurse['dept_code'] else code))
         except Exception as e:
-            logger.warning(f"查询护士多科室配置失败，使用单科室模式: {e}")
+            logger.warning(f"构建护士多科室列表失败，使用单科室模式: {e}")
             dept_codes = [nurse['dept_code']] if nurse['dept_code'] else []
             dept_names = [nurse['dept_name']] if nurse['dept_name'] else []
         
@@ -224,11 +254,12 @@ def get_current_nurse():
         if not nurse_id:
             return error_response("未登录", "NOT_LOGGED_IN", 401)
         
-        # 查询护士信息
+        # 查询护士信息（包含多科室字段）
         with db.get_cursor() as cursor:
             cursor.execute("""
                 SELECT nurse_id, nurse_code, name, title,
-                       dept_code, dept_name, floor, role, status
+                       dept_code, dept_name, dept_code2, dept_code3, dept_code4,
+                       dept_code5, dept_code6, floor, role, status
                 FROM nurses
                 WHERE nurse_id = %s
             """, (nurse_id,))
@@ -237,21 +268,46 @@ def get_current_nurse():
         if not nurse:
             return error_response("护士信息不存在", "NURSE_NOT_FOUND", 404)
         
-        # 查询护士关联的科室列表（多科室支持）
+        # 从 nurses 表的 dept_code + dept_code2~dept_code6 构建多科室列表
         dept_codes = []
         dept_names = []
         try:
-            with db.get_cursor() as cursor:
-                cursor.execute("""
-                    SELECT dept_code, dept_name FROM nurse_dept_relations
-                    WHERE nurse_id = %s AND status = 1
-                    ORDER BY is_primary DESC, dept_code
-                """, (nurse_id,))
-                results = cursor.fetchall()
-                dept_codes = [row['dept_code'] for row in results]
-                dept_names = [row['dept_name'] for row in results]
+            raw_codes = [nurse['dept_code']]
+            for i in range(2, 7):
+                code = nurse.get(f'dept_code{i}')
+                if code and code.strip():
+                    raw_codes.append(code.strip())
+            
+            seen = set()
+            unique_codes = []
+            for c in raw_codes:
+                if c and c not in seen:
+                    seen.add(c)
+                    unique_codes.append(c)
+            
+            # 用 LIKE 前缀匹配从 clinic_schedules 查询科室名称
+            if unique_codes:
+                with db.get_cursor() as cursor:
+                    like_conditions = ' OR '.join(['clinic_dept LIKE %s'] * len(unique_codes))
+                    like_params = [f"{code}%" for code in unique_codes]
+                    cursor.execute(f"""
+                        SELECT DISTINCT clinic_dept, dept_name FROM clinic_schedules
+                        WHERE {like_conditions}
+                    """, like_params)
+                    rows = cursor.fetchall()
+                    
+                    dept_name_map = {}
+                    for code in unique_codes:
+                        for row in rows:
+                            if row['clinic_dept'].startswith(code):
+                                dept_name_map[code] = row['dept_name']
+                                break
+                
+                for code in unique_codes:
+                    dept_codes.append(code)
+                    dept_names.append(dept_name_map.get(code, nurse['dept_name'] if code == nurse['dept_code'] else code))
         except Exception as e:
-            logger.warning(f"查询护士多科室配置失败，使用单科室模式: {e}")
+            logger.warning(f"构建护士多科室列表失败，使用单科室模式: {e}")
             dept_codes = [nurse['dept_code']] if nurse['dept_code'] else []
             dept_names = [nurse['dept_name']] if nurse['dept_name'] else []
         
@@ -344,7 +400,7 @@ def require_login(f):
     return decorated_function
 
 def get_current_dept_codes():
-    """获取当前登录护士的科室编码列表（支持多科室）"""
+    """获取当前登录护士的科室编码列表（支持多科室，从 nurses 表 dept_code + dept_code2~6 读取）"""
     nurse_id = session.get('nurse_id')
     if not nurse_id:
         return []
@@ -353,19 +409,31 @@ def get_current_dept_codes():
     if is_admin():
         return []
     
-    # 查询护士关联的科室列表
+    # 从 nurses 表读取多科室字段
     try:
         with db.get_cursor() as cursor:
             cursor.execute("""
-                SELECT dept_code FROM nurse_dept_relations
-                WHERE nurse_id = %s AND status = 1
-                ORDER BY is_primary DESC, dept_code
+                SELECT dept_code, dept_code2, dept_code3, dept_code4, dept_code5, dept_code6
+                FROM nurses WHERE nurse_id = %s
             """, (nurse_id,))
-            results = cursor.fetchall()
-            return [row['dept_code'] for row in results]
+            nurse = cursor.fetchone()
+        
+        if not nurse:
+            return []
+        
+        # 收集所有非空科室编码，去重并保持顺序
+        dept_codes = []
+        seen = set()
+        for field in ['dept_code', 'dept_code2', 'dept_code3', 'dept_code4', 'dept_code5', 'dept_code6']:
+            code = nurse.get(field)
+            if code and code.strip() and code.strip() not in seen:
+                seen.add(code.strip())
+                dept_codes.append(code.strip())
+        
+        return dept_codes
     except Exception as e:
         logger.error(f"获取护士科室列表失败: {e}")
-        # 如果关联表不存在，回退到原来的单科室模式
+        # 回退到原来的单科室模式
         dept_code = session.get('dept_code')
         return [dept_code] if dept_code else []
 
@@ -375,7 +443,7 @@ def get_current_dept_code():
     return dept_codes[0] if dept_codes else session.get('dept_code')
 
 def get_current_dept_names():
-    """获取当前登录护士的科室名称列表"""
+    """获取当前登录护士的科室名称列表（LIKE 前缀匹配 clinic_schedules）"""
     nurse_id = session.get('nurse_id')
     if not nurse_id:
         return []
@@ -384,26 +452,44 @@ def get_current_dept_names():
         return []
     
     try:
+        dept_codes = get_current_dept_codes()
+        if not dept_codes:
+            return []
+        
+        # 用 LIKE 前缀匹配从 clinic_schedules 查询科室名称
         with db.get_cursor() as cursor:
-            cursor.execute("""
-                SELECT dept_name FROM nurse_dept_relations
-                WHERE nurse_id = %s AND status = 1
-                ORDER BY is_primary DESC, dept_code
-            """, (nurse_id,))
-            results = cursor.fetchall()
-            return [row['dept_name'] for row in results]
+            like_conditions = ' OR '.join(['clinic_dept LIKE %s'] * len(dept_codes))
+            like_params = [f"{code}%" for code in dept_codes]
+            cursor.execute(f"""
+                SELECT DISTINCT clinic_dept, dept_name FROM clinic_schedules
+                WHERE {like_conditions}
+            """, like_params)
+            rows = cursor.fetchall()
+            
+            dept_name_map = {}
+            for code in dept_codes:
+                for row in rows:
+                    if row['clinic_dept'].startswith(code):
+                        dept_name_map[code] = row['dept_name']
+                        break
+        
+        return [dept_name_map.get(code, code) for code in dept_codes]
     except Exception as e:
         logger.error(f"获取护士科室名称列表失败: {e}")
         dept_name = session.get('dept_name')
         return [dept_name] if dept_name else []
 
 def has_dept_permission(dept_code):
-    """检查当前护士是否有权限查看指定科室"""
+    """检查当前护士是否有权限查看指定科室（前缀匹配）"""
     if is_admin():
         return True
     
     dept_codes = get_current_dept_codes()
-    return dept_code in dept_codes
+    # 前缀匹配：护士的 dept_code 是被检查 clinic_dept 的前缀
+    for code in dept_codes:
+        if dept_code.startswith(code):
+            return True
+    return False
 
 def get_nurse_floor():
     """获取当前登录护士所在楼层"""

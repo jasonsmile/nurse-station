@@ -74,20 +74,18 @@ def get_clinic_schedules():
         dept_name = request.args.get('dept_name', '')
         time_desc = request.args.get('time_desc', '')  # 新增：午别筛选
         
-        # 获取当前登录护士的科室编码列表（支持多科室）
+        # 获取当前登录护士的科室编码列表（支持多科室，前缀匹配）
         nurse_dept_codes = get_current_dept_codes()
         
         # 如果不是管理员，强制使用护士的科室编码列表过滤
         if not is_admin() and nurse_dept_codes:
-            # 使用IN查询支持多科室
-            placeholders = ','.join(['%s'] * len(nurse_dept_codes))
             if dept_code:
-                # 如果指定了dept_code，检查是否在护士的科室列表中
-                if dept_code not in nurse_dept_codes:
+                # 如果指定了dept_code，检查是否匹配护士的科室前缀
+                if not any(dept_code.startswith(code) for code in nurse_dept_codes):
                     return error_response("无权限查看该科室", "PERMISSION_DENIED", 403)
                 # 只查询指定的科室
                 nurse_dept_codes = [dept_code]
-            # 后续SQL会使用nurse_dept_codes进行过滤
+            # 后续SQL会使用nurse_dept_codes进行LIKE前缀过滤
         elif not is_admin() and not nurse_dept_codes:
             # 如果没有配置科室，返回空结果
             return success_response({
@@ -133,14 +131,14 @@ def get_clinic_schedules():
             """
             params = [clinic_date]
             
-            # 多科室过滤
+            # 多科室过滤（LIKE 前缀匹配：dept_code 是 clinic_dept 的前缀）
             if not is_admin() and nurse_dept_codes:
-                placeholders = ','.join(['%s'] * len(nurse_dept_codes))
-                sql += f" AND clinic_dept IN ({placeholders})"
-                params.extend(nurse_dept_codes)
+                like_conditions = ' OR '.join(['clinic_dept LIKE %s'] * len(nurse_dept_codes))
+                sql += f" AND ({like_conditions})"
+                params.extend([f"{code}%" for code in nurse_dept_codes])
             elif dept_code:
-                sql += " AND clinic_dept = %s"
-                params.append(dept_code)
+                sql += " AND clinic_dept LIKE %s"
+                params.append(f"{dept_code}%")
             elif dept_name:
                 sql += " AND dept_name LIKE %s"
                 params.append(f"%{dept_name}%")
@@ -234,19 +232,20 @@ def get_patient_registrations():
         # 获取当前登录护士的科室编码列表（支持多科室）
         nurse_dept_codes = get_current_dept_codes()
         
-        # 如果不是管理员，验证科室权限
+        # 如果不是管理员，验证科室权限（前缀匹配）
         if not is_admin():
             if not nurse_dept_codes:
                 return error_response("未配置科室权限", "NO_DEPT_PERMISSION", 403)
-            # 检查clinic_label是否属于护士的科室（通过号别排班表验证）
+            # 检查clinic_label是否属于护士的科室（通过号别排班表验证，LIKE前缀匹配）
             permission_ok = False
             try:
                 with db.get_cursor() as cursor:
-                    placeholders = ','.join(['%s'] * len(nurse_dept_codes))
+                    like_conditions = ' OR '.join(['clinic_dept LIKE %s'] * len(nurse_dept_codes))
+                    like_params = [f"{code}%" for code in nurse_dept_codes]
                     cursor.execute(f"""
                         SELECT COUNT(*) as count FROM clinic_schedules
-                        WHERE clinic_label = %s AND clinic_dept IN ({placeholders})
-                    """, [clinic_label] + nurse_dept_codes)
+                        WHERE clinic_label = %s AND ({like_conditions})
+                    """, [clinic_label] + like_params)
                     result = cursor.fetchone()
                     if result['count'] > 0:
                         permission_ok = True
@@ -411,7 +410,7 @@ def get_patient_orders():
         # 获取当前登录护士的科室编码列表（支持多科室）
         nurse_dept_codes = get_current_dept_codes()
         
-        # 如果不是管理员，验证科室权限（通过患者挂号信息验证）
+        # 如果不是管理员，验证科室权限（通过患者挂号信息验证，LIKE前缀匹配）
         if not is_admin():
             if not nurse_dept_codes:
                 return error_response("未配置科室权限", "NO_DEPT_PERMISSION", 403)
@@ -419,15 +418,16 @@ def get_patient_orders():
             permission_ok = False
             try:
                 with db.get_cursor() as cursor:
-                    placeholders = ','.join(['%s'] * len(nurse_dept_codes))
+                    like_conditions = ' OR '.join(['cs.clinic_dept LIKE %s'] * len(nurse_dept_codes))
+                    like_params = [f"{code}%" for code in nurse_dept_codes]
                     cursor.execute(f"""
                         SELECT COUNT(*) as count FROM patient_registrations pr
                         JOIN clinic_schedules cs ON pr.clinic_label = cs.clinic_label 
                             AND pr.visit_date = cs.clinic_date 
                             AND pr.visit_time_desc = cs.time_desc
                         WHERE pr.visit_no = %s AND pr.visit_date = %s 
-                            AND cs.clinic_dept IN ({placeholders})
-                    """, [visit_no, visit_date] + nurse_dept_codes)
+                            AND ({like_conditions})
+                    """, [visit_no, visit_date] + like_params)
                     result = cursor.fetchone()
                     if result['count'] > 0:
                         permission_ok = True
@@ -438,16 +438,14 @@ def get_patient_orders():
             if not permission_ok:
                 try:
                     with db.get_cursor() as cursor:
-                        # 通过visit_no中的信息或clinic_schedules表验证
-                        placeholders = ','.join(['%s'] * len(nurse_dept_codes))
+                        like_conditions = ' OR '.join(['clinic_dept LIKE %s'] * len(nurse_dept_codes))
+                        like_params = [f"{code}%" for code in nurse_dept_codes]
                         cursor.execute(f"""
                             SELECT COUNT(*) as count FROM clinic_schedules
-                            WHERE clinic_date = %s AND clinic_dept IN ({placeholders})
-                        """, [visit_date] + nurse_dept_codes)
+                            WHERE clinic_date = %s AND ({like_conditions})
+                        """, [visit_date] + like_params)
                         result = cursor.fetchone()
                         if result['count'] > 0:
-                            # 护士有该天某个科室的排班权限，暂时放行
-                            # 因为HIS直连模式下本地patient_registrations可能没数据
                             permission_ok = True
                             logger.info(f"通过号别排班表验证权限: visit_no={visit_no}")
                 except Exception as e:
@@ -732,11 +730,11 @@ def get_nurse_station_dashboard():
             """
             params = [clinic_date]
             
-            # 多科室过滤
+            # 多科室过滤（LIKE 前缀匹配）
             if not is_admin() and nurse_dept_codes:
-                placeholders = ','.join(['%s'] * len(nurse_dept_codes))
-                sql += f" AND clinic_dept IN ({placeholders})"
-                params.extend(nurse_dept_codes)
+                like_conditions = ' OR '.join(['clinic_dept LIKE %s'] * len(nurse_dept_codes))
+                sql += f" AND ({like_conditions})"
+                params.extend([f"{code}%" for code in nurse_dept_codes])
             elif dept_name:
                 sql += " AND dept_name LIKE %s"
                 params.append(f"%{dept_name}%")

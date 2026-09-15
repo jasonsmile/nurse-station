@@ -710,12 +710,41 @@
                         <label class="form-label">主要科室 *</label>
                         <select class="form-control" id="deptCode" required>
                             <option value="">请选择科室</option>
-                            <option value="XK">心内科</option>
-                            <option value="XWK">心外科</option>
-                            <option value="NK">内科</option>
-                            <option value="WK">外科</option>
-                            <option value="NFMK">内分泌科</option>
-                            <option value="ZYK">中医科</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">额外科室2</label>
+                        <select class="form-control" id="deptCode2">
+                            <option value="">无</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">额外科室3</label>
+                        <select class="form-control" id="deptCode3">
+                            <option value="">无</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">额外科室4</label>
+                        <select class="form-control" id="deptCode4">
+                            <option value="">无</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">额外科室5</label>
+                        <select class="form-control" id="deptCode5">
+                            <option value="">无</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">额外科室6</label>
+                        <select class="form-control" id="deptCode6">
+                            <option value="">无</option>
                         </select>
                     </div>
                     
@@ -755,36 +784,6 @@
                             </label>
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">管理科室（可多选）</label>
-                        <div class="checkbox-group" id="deptCheckboxes">
-                            <label class="checkbox-item">
-                                <input type="checkbox" name="depts" value="XK">
-                                <span>心内科</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" name="depts" value="XWK">
-                                <span>心外科</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" name="depts" value="NK">
-                                <span>内科</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" name="depts" value="WK">
-                                <span>外科</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" name="depts" value="NFMK">
-                                <span>内分泌科</span>
-                            </label>
-                            <label class="checkbox-item">
-                                <input type="checkbox" name="depts" value="ZYK">
-                                <span>中医科</span>
-                            </label>
-                        </div>
-                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -813,12 +812,81 @@
     <script>
         const API_BASE = '';
         let nurseInfo = null;
+        let allDeptOptions = [];  // 从 clinic_schedules 加载的科室列表
         
         // 页面加载时获取护士列表
         document.addEventListener('DOMContentLoaded', async function() {
             await checkLogin();
+            await loadDeptOptions();
             loadNurses();
         });
+        
+        // 从 G0013 科室字典接口加载科室下拉选项
+        async function loadDeptOptions() {
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/admin/dept-dict`, {
+                    credentials: 'include'
+                });
+                const result = await res.json();
+                
+                if (result.success && result.data.departments) {
+                    allDeptOptions = result.data.departments.map(d => ({
+                        code: d.dept_code,
+                        name: d.dept_name
+                    }));
+                }
+                
+                // 如果接口失败或返回空，使用备选科室
+                if (allDeptOptions.length === 0) {
+                    console.warn('G0013科室字典返回空，使用备选科室列表');
+                    allDeptOptions = [
+                        {code: 'XK', name: '心内科'},
+                        {code: 'XWK', name: '心外科'},
+                        {code: 'NK', name: '内科'},
+                        {code: 'WK', name: '外科'},
+                        {code: 'NFMK', name: '内分泌科'},
+                        {code: 'ZYK', name: '中医科'}
+                    ];
+                }
+                
+                // 填充所有科室下拉框
+                populateDeptSelects();
+            } catch (e) {
+                console.error('加载科室字典失败:', e);
+                // 使用备选科室
+                allDeptOptions = [
+                    {code: 'XK', name: '心内科'},
+                    {code: 'XWK', name: '心外科'},
+                    {code: 'NK', name: '内科'},
+                    {code: 'WK', name: '外科'},
+                    {code: 'NFMK', name: '内分泌科'},
+                    {code: 'ZYK', name: '中医科'}
+                ];
+                populateDeptSelects();
+            }
+        }
+        
+        // 填充科室下拉框选项
+        function populateDeptSelects() {
+            const selectIds = ['deptCode', 'deptCode2', 'deptCode3', 'deptCode4', 'deptCode5', 'deptCode6'];
+            selectIds.forEach((id, index) => {
+                const select = document.getElementById(id);
+                const defaultText = index === 0 ? '请选择科室' : '无';
+                let html = `<option value="">${defaultText}</option>`;
+                allDeptOptions.forEach(dept => {
+                    html += `<option value="${dept.code}">${dept.name}</option>`;
+                });
+                select.innerHTML = html;
+            });
+            
+            // 同时更新筛选下拉框
+            const filterDept = document.getElementById('filterDept');
+            let filterHtml = '<option value="">全部科室</option>';
+            allDeptOptions.forEach(dept => {
+                filterHtml += `<option value="${dept.code}">${dept.name}</option>`;
+            });
+            filterDept.innerHTML = filterHtml;
+        }
         
         async function checkLogin() {
             try {
@@ -933,6 +1001,7 @@
             document.getElementById('modalTitle').textContent = '新增护士';
             document.getElementById('nurseForm').reset();
             document.getElementById('nurseId').value = '';
+            document.getElementById('nurseCode').readOnly = false;
             document.getElementById('passwordGroup').style.display = 'block';
             document.getElementById('nurseModal').classList.add('show');
         }
@@ -942,6 +1011,49 @@
             document.getElementById('modalTitle').textContent = '编辑护士';
             document.getElementById('nurseId').value = nurseId;
             document.getElementById('passwordGroup').style.display = 'none';
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/admin/nurses/${nurseId}`, {
+                    credentials: 'include'
+                });
+                const result = await res.json();
+                
+                if (result.success && result.data.nurse) {
+                    const nurse = result.data.nurse;
+                    document.getElementById('nurseCode').value = nurse.nurse_code || '';
+                    document.getElementById('nurseCode').readOnly = true;
+                    document.getElementById('nurseName').value = nurse.name || '';
+                    document.getElementById('title').value = nurse.title || '';
+                    document.getElementById('floor').value = nurse.floor || '';
+                    document.getElementById('phone').value = nurse.phone || '';
+                    document.getElementById('email').value = nurse.email || '';
+                    
+                    // 设置科室下拉框
+                    document.getElementById('deptCode').value = nurse.dept_code || '';
+                    document.getElementById('deptCode2').value = nurse.dept_code2 || '';
+                    document.getElementById('deptCode3').value = nurse.dept_code3 || '';
+                    document.getElementById('deptCode4').value = nurse.dept_code4 || '';
+                    document.getElementById('deptCode5').value = nurse.dept_code5 || '';
+                    document.getElementById('deptCode6').value = nurse.dept_code6 || '';
+                    
+                    // 设置角色复选框
+                    document.querySelectorAll('input[name="roles"]').forEach(cb => cb.checked = false);
+                    if (nurse.role_ids) {
+                        nurse.role_ids.split(',').forEach(roleId => {
+                            const cb = document.querySelector(`input[name="roles"][value="${roleId.trim()}"]`);
+                            if (cb) cb.checked = true;
+                        });
+                    }
+                } else {
+                    alert(result.message || '加载护士信息失败');
+                    return;
+                }
+            } catch (e) {
+                console.error('加载护士详情失败:', e);
+                alert('加载护士信息失败');
+                return;
+            }
+            
             document.getElementById('nurseModal').classList.add('show');
         }
         
@@ -960,25 +1072,30 @@
             const roleIds = Array.from(document.querySelectorAll('input[name="roles"]:checked'))
                 .map(cb => cb.value);
             
-            const deptCodes = Array.from(document.querySelectorAll('input[name="depts"]:checked'))
-                .map(cb => cb.value);
-            
             if (!nurseCode || !nurseName || !deptCode) {
                 alert('请填写必填字段');
                 return;
             }
+            
+            // 获取主科室名称
+            const deptSelect = document.getElementById('deptCode');
+            const deptName = deptSelect.options[deptSelect.selectedIndex]?.text || deptCode;
             
             const data = {
                 nurse_code: nurseCode,
                 name: nurseName,
                 title: title,
                 dept_code: deptCode,
-                dept_name: document.getElementById('deptCode').options[document.getElementById('deptCode').selectedIndex].text,
+                dept_name: deptName,
+                dept_code2: document.getElementById('deptCode2').value || '',
+                dept_code3: document.getElementById('deptCode3').value || '',
+                dept_code4: document.getElementById('deptCode4').value || '',
+                dept_code5: document.getElementById('deptCode5').value || '',
+                dept_code6: document.getElementById('deptCode6').value || '',
                 floor: floor,
                 phone: phone,
                 email: email,
-                role_ids: roleIds,
-                dept_codes: deptCodes.length > 0 ? deptCodes : [deptCode]
+                role_ids: roleIds
             };
             
             if (!nurseId && password) {

@@ -273,6 +273,132 @@ class HISWebAPIAdapter:
             self._cache.clear()
         logger.info("HIS缓存已清除")
 
+    # ============ G0013 档案信息取科室字典信息 ============
+
+    def get_dept_dict(
+            self,
+            ono: int = 1,
+            eno: int = 100,
+            use_cache: bool = True,
+            use_encryption: bool = False
+    ) -> Dict:
+        """
+        获取科室字典信息（G0013接口）
+        
+        Args:
+            ono: 开始序号，从1开始
+            eno: 结束序号，每次查询eno-ono不可超过100
+            use_cache: 是否使用缓存
+            use_encryption: 是否使用BASE64加密
+            
+        Returns:
+            {
+                "success": True/False,
+                "message": "操作结果消息",
+                "total_count": 总记录数,
+                "departments": [
+                    {
+                        "DEPT_CODE": "科室编码",
+                        "DEPT_NAME": "科室名称",
+                        "ITEMNO": 序号
+                    }
+                ]
+            }
+        """
+        if eno - ono > 100:
+            raise ValueError("每次查询范围不可超过100条记录")
+
+        if ono < 1:
+            raise ValueError("开始序号必须大于等于1")
+
+        cache_key = self._get_cache_key('G0013_depts', ono=ono, eno=eno, encrypted=use_encryption)
+        if use_cache:
+            cached = self._get_cached(cache_key)
+            if cached:
+                return cached
+
+        list_params = [{
+            "ONO": str(ono),
+            "ENO": str(eno)
+        }]
+
+        try:
+            response = self._request("G0013", list_params, use_encryption=use_encryption)
+            success, message, data = self._check_response(response)
+
+            if not success:
+                logger.error(f"G0013接口返回错误: {message}")
+                return {
+                    "success": False,
+                    "message": message,
+                    "total_count": 0,
+                    "departments": []
+                }
+
+            oudata = data.get("OUDATA", []) if data else []
+
+            result = {
+                "success": True,
+                "message": message,
+                "total_count": len(oudata),
+                "departments": oudata
+            }
+
+            if use_cache:
+                self._set_cache(cache_key, result, ttl=3600)  # 科室字典缓存1小时
+
+            return result
+
+        except HISAdapterError as e:
+            logger.error(f"获取科室字典失败: {e}")
+            return {
+                "success": False,
+                "message": str(e),
+                "total_count": 0,
+                "departments": []
+            }
+
+    def get_all_dept_dict(self, batch_size: int = 100, use_encryption: bool = False) -> Dict:
+        """
+        获取所有科室字典信息（自动分页）
+        
+        Args:
+            batch_size: 每批次获取数量，最大100
+            use_encryption: 是否使用BASE64加密
+            
+        Returns:
+            所有科室字典信息
+        """
+        all_depts = []
+        ono = 1
+
+        while True:
+            eno = ono + batch_size - 1
+            result = self.get_dept_dict(
+                ono=ono,
+                eno=eno,
+                use_cache=False,
+                use_encryption=use_encryption
+            )
+
+            if not result.get("success"):
+                return result
+
+            depts = result.get("departments", [])
+            all_depts.extend(depts)
+
+            if len(depts) < batch_size:
+                break
+
+            ono += batch_size
+
+        return {
+            "success": True,
+            "message": "获取成功",
+            "total_count": len(all_depts),
+            "departments": all_depts
+        }
+
     # ============ G0078 门诊护士获取号别排班 ============
 
     def get_clinic_schedules(
