@@ -404,10 +404,89 @@
             border-radius: 12px;
             font-weight: 600;
         }
+
+        .doctor-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 8px;
+        }
+
+        .doctor-pin {
+            padding: 2px;
+            border: 0;
+            background: transparent;
+            color: #d9a400;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .doctor-pin:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
         
         /* 患者列表 */
+        .patient-list-header { flex-wrap: wrap; gap: 8px; }
+        .patient-status-filters { display: flex; gap: 4px; }
+        .patient-status-filter {
+            padding: 4px 7px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text-secondary);
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .patient-status-filter.active {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: #fff;
+        }
+        .patient-status-filter:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
         .patient-list {
             flex: 1;
+        }
+
+        .patient-search {
+            display: flex;
+            gap: 6px;
+            padding: 10px 12px;
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .patient-search input {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .patient-search button {
+            padding: 7px 9px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text-secondary);
+            font-size: 12px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .patient-search button[type="submit"] {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: #fff;
         }
         
         .patient-item {
@@ -845,9 +924,18 @@
                 
                 <!-- 患者列表 -->
                 <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-                    <div class="section-header">
+                    <div class="section-header patient-list-header">
                         <span>👥 患者列表 (<span id="patientCount">0</span>)</span>
+                        <div class="patient-status-filters" role="group" aria-label="报到状态筛选">
+                            <button type="button" class="patient-status-filter" data-patient-status="reported" aria-pressed="false" onclick="togglePatientStatusFilter('reported')">已报到</button>
+                            <button type="button" class="patient-status-filter" data-patient-status="pending" aria-pressed="false" onclick="togglePatientStatusFilter('pending')">未报到</button>
+                        </div>
                     </div>
+                    <form class="patient-search" onsubmit="searchPatientRegistrations(event)">
+                        <input id="patientSearchInput" type="search" placeholder="输入患者姓名或卡号" aria-label="患者姓名或卡号">
+                        <button type="submit">查询</button>
+                        <button type="button" onclick="clearPatientSearch()">清空</button>
+                    </form>
                     <div class="section-content patient-list" id="patientList" style="flex: 1;">
                         <div class="empty-state">
                             <div class="empty-state-icon">👥</div>
@@ -912,7 +1000,49 @@
         let deptGroupsData = [];
         let currentTimeDesc = '';
         let patientsData = [];
+        let patientStatusFilter = '';
+        let patientSearchKeyword = '';
         let nurseInfo = null;
+
+        function getPinnedSchedulesStorageKey() {
+            return nurseInfo && nurseInfo.nurse_id
+                ? `nurse_station:pinned_schedules:${nurseInfo.nurse_id}`
+                : null;
+        }
+
+        function getPinnedScheduleIds() {
+            const storageKey = getPinnedSchedulesStorageKey();
+            if (!storageKey) return [];
+            try {
+                const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                return Array.isArray(stored) ? stored.filter(id => typeof id === 'string') : [];
+            } catch (error) {
+                console.warn('读取本地置顶号别失败:', error);
+                return [];
+            }
+        }
+
+        function togglePinnedSchedule(event, encodedScheduleId) {
+            event.stopPropagation();
+            const storageKey = getPinnedSchedulesStorageKey();
+            if (!storageKey || !encodedScheduleId) return;
+
+            const scheduleId = decodeURIComponent(encodedScheduleId);
+            const pinnedIds = new Set(getPinnedScheduleIds());
+            if (pinnedIds.has(scheduleId)) {
+                pinnedIds.delete(scheduleId);
+            } else {
+                pinnedIds.add(scheduleId);
+            }
+
+            try {
+                localStorage.setItem(storageKey, JSON.stringify([...pinnedIds]));
+                renderDoctorList(getVisibleDeptGroups());
+            } catch (error) {
+                console.error('保存本地置顶号别失败:', error);
+                showApiStatus('保存置顶设置失败，请检查浏览器存储空间', 'error');
+            }
+        }
         
         // ============ 初始化 ============
         document.addEventListener('DOMContentLoaded', init);
@@ -1066,12 +1196,25 @@
                 return;
             }
             
+            const pinnedIds = new Set(getPinnedScheduleIds());
+            const visibleSchedules = deptGroups.flatMap(dept => dept.schedules)
+                .map((schedule, index) => ({ schedule, index }))
+                .sort((a, b) => {
+                    const aPinned = a.schedule.schedule_id && pinnedIds.has(String(a.schedule.schedule_id));
+                    const bPinned = b.schedule.schedule_id && pinnedIds.has(String(b.schedule.schedule_id));
+                    return Number(bPinned) - Number(aPinned) || a.index - b.index;
+                });
+
             let html = '';
-            deptGroups.forEach(dept => {
-                dept.schedules.forEach(schedule => {
+            visibleSchedules.forEach(({ schedule }) => {
                     const isActive = currentSchedule && 
                                    currentSchedule.clinic_label === schedule.clinic_label &&
                                    currentSchedule.time_desc === schedule.time_desc;
+                    const scheduleId = schedule.schedule_id ? String(schedule.schedule_id) : '';
+                    const encodedScheduleId = scheduleId
+                        ? encodeURIComponent(scheduleId).replace(/'/g, '%27')
+                        : '';
+                    const isPinned = scheduleId && pinnedIds.has(scheduleId);
                     
                     html += `
                         <div class="doctor-item ${isActive ? 'active' : ''}" 
@@ -1081,10 +1224,12 @@
                                 <div class="doctor-name">${schedule.clinic_label}</div>
                                 <div class="doctor-meta">${schedule.time_desc} · 限号${schedule.registration_limits} · 已挂${schedule.registration_num}</div>
                             </div>
-                            <span class="doctor-count">${schedule.registration_num}</span>
+                            <div class="doctor-actions">
+                                <span class="doctor-count">${schedule.registration_num}</span>
+                                ${scheduleId ? `<button type="button" class="doctor-pin" aria-label="${isPinned ? '取消置顶' : '置顶号别'} ${schedule.clinic_label} ${schedule.time_desc}" aria-pressed="${Boolean(isPinned)}" title="${isPinned ? '取消置顶' : '置顶'}" data-schedule-id="${encodedScheduleId}" onclick="togglePinnedSchedule(event, this.dataset.scheduleId)">${isPinned ? '★' : '☆'}</button>` : ''}
+                            </div>
                         </div>
                     `;
-                });
             });
             
             container.innerHTML = html;
@@ -1092,6 +1237,8 @@
         
         function selectSchedule(clinicLabel, timeDesc, deptName) {
             currentSchedule = { clinic_label: clinicLabel, time_desc: timeDesc, dept_name: deptName };
+            patientSearchKeyword = '';
+            document.getElementById('patientSearchInput').value = '';
             renderDoctorList(getVisibleDeptGroups());
             loadPatientRegistrations(clinicLabel, timeDesc);
         }
@@ -1101,10 +1248,16 @@
         }
         
         // ============ 患者列表 ============
-        async function loadPatientRegistrations(clinicLabel, timeDesc) {
+        async function loadPatientRegistrations(clinicLabel, timeDesc, keyword = patientSearchKeyword) {
             try {
                 const today = new Date().toISOString().split('T')[0];
-                const res = await fetch(`${API_BASE}/api/v1/patient-registrations?visit_date=${today}&clinic_label=${encodeURIComponent(clinicLabel)}&visit_time_desc=${encodeURIComponent(timeDesc)}`, {
+                const params = new URLSearchParams({
+                    visit_date: today,
+                    clinic_label: clinicLabel,
+                    visit_time_desc: timeDesc
+                });
+                if (keyword) params.set('keyword', keyword);
+                const res = await fetch(`${API_BASE}/api/v1/patient-registrations?${params.toString()}`, {
                     credentials: 'include'
                 });
                 const result = await res.json();
@@ -1122,13 +1275,54 @@
                 showApiStatus('加载患者列表失败', 'error');
             }
         }
+
+        async function searchPatientRegistrations(event) {
+            if (event) event.preventDefault();
+            if (!currentSchedule) {
+                showApiStatus('请先选择号别和午别', 'warning');
+                return;
+            }
+            patientSearchKeyword = document.getElementById('patientSearchInput').value.trim();
+            await loadPatientRegistrations(
+                currentSchedule.clinic_label,
+                currentSchedule.time_desc,
+                patientSearchKeyword
+            );
+        }
+
+        async function clearPatientSearch() {
+            document.getElementById('patientSearchInput').value = '';
+            patientSearchKeyword = '';
+            if (currentSchedule) {
+                await loadPatientRegistrations(currentSchedule.clinic_label, currentSchedule.time_desc, '');
+            } else {
+                patientsData = [];
+                renderPatientList(patientsData);
+            }
+        }
         
+        function togglePatientStatusFilter(status) {
+            patientStatusFilter = patientStatusFilter === status ? '' : status;
+            document.querySelectorAll('[data-patient-status]').forEach(button => {
+                const active = button.dataset.patientStatus === patientStatusFilter;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
+            renderPatientList(patientsData);
+        }
+
         function renderPatientList(patients) {
+            patients = patients.filter(p => !patientStatusFilter ||
+                (patientStatusFilter === 'reported' ? !!p.fre_date : !p.fre_date));
             const container = document.getElementById('patientList');
             document.getElementById('patientCount').textContent = patients.length;
             
             if (patients.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">暂无患者</div></div>';
+                const message = patientSearchKeyword ? '未找到符合条件的患者' :
+                    patientStatusFilter === 'reported' ? '暂无已报到患者' :
+                    patientStatusFilter === 'pending' ? '暂无未报到患者' :
+                    currentSchedule ? '暂无患者' : '请选择号别查看患者';
+                container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-text">${message}</div></div>`;
                 return;
             }
             

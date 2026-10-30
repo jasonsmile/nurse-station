@@ -598,7 +598,7 @@
         <div class="header-user">
             <div class="user-info">
                 <span>👤</span>
-                <span id="nurseName">--</span>
+                <span id="currentNurseName">--</span>
             </div>
             <a href="index.html" class="btn-workbench">
                 <span>←</span>
@@ -698,7 +698,7 @@
                     
                     <div class="form-group" id="passwordGroup">
                         <label class="form-label">密码 *</label>
-                        <input type="password" class="form-control" id="password" placeholder="默认: 123456">
+                        <input type="password" class="form-control" id="password" placeholder="请输入密码">
                     </div>
                     
                     <div class="form-group">
@@ -897,7 +897,7 @@
                 
                 if (result.success) {
                     nurseInfo = result.data;
-                    document.getElementById('nurseName').textContent = nurseInfo.name;
+                    document.getElementById('currentNurseName').textContent = nurseInfo.name;
                 } else {
                     window.location.href = 'index.html';
                 }
@@ -1072,8 +1072,14 @@
             const roleIds = Array.from(document.querySelectorAll('input[name="roles"]:checked'))
                 .map(cb => cb.value);
             
-            if (!nurseCode || !nurseName || !deptCode) {
-                alert('请填写必填字段');
+            const missingFields = [];
+            if (!nurseCode.trim()) missingFields.push('工号');
+            if (!nurseName.trim()) missingFields.push('姓名');
+            if (!nurseId && !password) missingFields.push('密码');
+            if (!deptCode) missingFields.push('主要科室');
+            if (roleIds.length === 0) missingFields.push('角色（至少选择一项）');
+            if (missingFields.length > 0) {
+                alert('请填写必填字段：' + missingFields.join('、'));
                 return;
             }
             

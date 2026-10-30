@@ -168,6 +168,18 @@ class HISWebAPIAdapter:
 
         logger.debug(f"HIS请求 [{service_code}]: {json.dumps(payload, ensure_ascii=False)}")
 
+        if service_code == "G0013":
+            log_payload = payload.copy()
+            if log_payload.get("MESKEY"):
+                log_payload["MESKEY"] = "***"
+            if log_payload.get("INDATA"):
+                log_payload["INDATA"] = "***"
+            logger.info(
+                "G0013请求: url=%s, payload=%s",
+                url,
+                json.dumps(log_payload, ensure_ascii=False)
+            )
+
         try:
             response = self.session.post(
                 url=url,
@@ -180,6 +192,13 @@ class HISWebAPIAdapter:
             # 记录原始响应内容用于调试
             raw_text = response.text
             logger.debug(f"HIS原始响应 [{service_code}]: {raw_text[:500]}")
+
+            if service_code == "G0013":
+                logger.info(
+                    "G0013返回: status=%s, body=%s",
+                    response.status_code,
+                    raw_text
+                )
 
             result = response.json()
 
@@ -327,7 +346,9 @@ class HISWebAPIAdapter:
             success, message, data = self._check_response(response)
 
             if not success:
-                logger.error(f"G0013接口返回错误: {message}")
+                # 调用方可降级到本地科室字典，不将 HIS 业务失败记为
+                # 应用级 ERROR，避免在未开通 G0013 的环境中持续误报。
+                logger.warning(f"G0013接口返回失败: {message}")
                 return {
                     "success": False,
                     "message": message,

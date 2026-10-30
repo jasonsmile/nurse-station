@@ -222,6 +222,7 @@ def get_patient_registrations():
         visit_date = request.args.get('visit_date', datetime.now().strftime('%Y-%m-%d'))
         clinic_label = request.args.get('clinic_label', '')
         visit_time_desc = request.args.get('visit_time_desc', '')
+        keyword = request.args.get('keyword', '').strip()
         
         if not clinic_label:
             return error_response("缺少clinic_label参数", "INVALID_PARAMS")
@@ -317,6 +318,13 @@ def get_patient_registrations():
                     'pnum': reg.get('PNUM', 0),
                     'fre_date': reg.get('FRE_DATE')
                 })
+
+            if keyword:
+                normalized_keyword = keyword.casefold()
+                registrations = [reg for reg in registrations if
+                    normalized_keyword in str(reg.get('name') or '').casefold() or
+                    str(reg.get('card_id') or '').strip() == keyword
+                ]
             
             return success_response({
                 "visit_date": visit_date,
@@ -336,10 +344,14 @@ def get_patient_registrations():
                     charge_type, serial_no, pnum, fre_date
                 FROM patient_registrations 
                 WHERE visit_date = %s AND clinic_label = %s AND visit_time_desc = %s
-                ORDER BY serial_no, pnum
             """
             
-            cursor.execute(sql, (visit_date, clinic_label, visit_time_desc))
+            params = [visit_date, clinic_label, visit_time_desc]
+            if keyword:
+                sql += " AND (LOCATE(%s, LOWER(name)) > 0 OR TRIM(card_id) = %s)"
+                params.extend([keyword.lower(), keyword])
+            sql += " ORDER BY serial_no, pnum"
+            cursor.execute(sql, tuple(params))
             registrations = cursor.fetchall()
         
         return success_response({

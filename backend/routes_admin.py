@@ -48,6 +48,47 @@ def md5_hash(text):
 
 # ============ 科室字典接口 ============
 
+def _get_local_dept_dict():
+    """从本地排班和护士资料汇总科室字典。
+
+    G0013 在部分 HIS 环境中未开通或会返回非法 JSON，本地数据作为
+    管理页的降级数据源，避免影响护士账号管理。
+    """
+    departments = {}
+
+    with db.get_cursor() as cursor:
+        cursor.execute("""
+            SELECT DISTINCT clinic_dept AS dept_code, dept_name
+            FROM clinic_schedules
+            WHERE clinic_dept IS NOT NULL AND clinic_dept <> ''
+              AND dept_name IS NOT NULL AND dept_name <> ''
+            ORDER BY dept_name, clinic_dept
+        """)
+        for row in cursor.fetchall():
+            code = str(row.get('dept_code') or '').strip()
+            name = str(row.get('dept_name') or '').strip()
+            if code and name:
+                departments.setdefault(code, name)
+
+        # 补充护士主科室，以兼容尚未有排班数据的科室。
+        cursor.execute("""
+            SELECT DISTINCT dept_code, dept_name
+            FROM nurses
+            WHERE dept_code IS NOT NULL AND dept_code <> ''
+              AND dept_name IS NOT NULL AND dept_name <> ''
+            ORDER BY dept_name, dept_code
+        """)
+        for row in cursor.fetchall():
+            code = str(row.get('dept_code') or '').strip()
+            name = str(row.get('dept_name') or '').strip()
+            if code and name:
+                departments.setdefault(code, name)
+
+    return [
+        {'dept_code': code, 'dept_name': name}
+        for code, name in sorted(departments.items(), key=lambda item: (item[1], item[0]))
+    ]
+
 @admin_bp.route('/dept-dict', methods=['GET'])
 @require_login
 def get_dept_dict():
@@ -87,7 +128,18 @@ def get_dept_dict():
                 "total_count": len(departments)
             })
         else:
-            return error_response(result.get('message', '获取科室字典失败'), "HIS_ERROR", 502)
+            his_message = result.get('message', '获取科室字典失败')
+            logger.warning(f"G0013科室字典不可用，尝试使用本地数据: {his_message}")
+
+            departments = _get_local_dept_dict()
+            if departments:
+                return success_response({
+                    "departments": departments,
+                    "total_count": len(departments),
+                    "source": "local"
+                }, "HIS科室字典不可用，已使用本地科室数据")
+
+            return error_response("科室字典暂时不可用", "HIS_ERROR", 502)
             
     except Exception as e:
         logger.error(f"获取科室字典失败: {e}")
