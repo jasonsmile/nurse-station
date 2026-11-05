@@ -1309,6 +1309,8 @@ class HISWebAPIAdapter:
                             serial_no = %s,
                             pnum = %s,
                             fre_date = %s,
+                            telephone = %s,
+                            registration_status = %s,
                             sync_status = 1,
                             sync_time = %s,
                             updated_at = %s
@@ -1321,8 +1323,10 @@ class HISWebAPIAdapter:
                         reg.get("AGE"),
                         reg.get("CHARGE_TYPE"),
                         reg.get("SERIAL_NO", 0),
-                        reg.get("PNUM", 0),
+                        reg.get("PNUM2", reg.get("PNUM", 0)),
                         reg.get("FRE_DATE"),
+                        reg.get("TELEPHONE"),
+                        reg.get("REGISTRATION_STATUS"),
                         datetime.now(),
                         datetime.now(),
                         registration_id
@@ -1334,9 +1338,9 @@ class HISWebAPIAdapter:
                         INSERT INTO patient_registrations (
                             registration_id, visit_date, visit_no, visit_time_desc,
                             clinic_label, patient_id, card_id, name, sex, age,
-                            charge_type, serial_no, pnum, fre_date, sync_status, sync_time,
+                            charge_type, serial_no, pnum, fre_date, telephone, registration_status, sync_status, sync_time,
                             created_at, updated_at
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         registration_id,
                         visit_date,
@@ -1350,8 +1354,10 @@ class HISWebAPIAdapter:
                         reg.get("AGE"),
                         reg.get("CHARGE_TYPE"),
                         reg.get("SERIAL_NO", 0),
-                        reg.get("PNUM", 0),
+                        reg.get("PNUM2", reg.get("PNUM", 0)),
                         reg.get("FRE_DATE"),
+                        reg.get("TELEPHONE"),
+                        reg.get("REGISTRATION_STATUS"),
                         1,
                         datetime.now(),
                         datetime.now(),

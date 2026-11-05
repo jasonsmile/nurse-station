@@ -2,7 +2,7 @@
 ================================================================================
 软件名称：北京医院门诊护士工作站
 文件名称：patient_query.html
-功能描述：患者查询页面，支持按病历号或卡号查询就诊记录及处方信息
+功能描述：患者查询页面，支持按病历号、卡号或姓名查询就诊记录及处方信息
 开发单位：北京医院
 开发日期：2026年8月
 版本号：V1.0
@@ -702,6 +702,10 @@
                             <input type="radio" name="queryType" value="card_id">
                             <span>卡号</span>
                         </label>
+                        <label class="radio-item">
+                            <input type="radio" name="queryType" value="name">
+                            <span>姓名</span>
+                        </label>
                     </div>
                 </div>
                 
@@ -835,6 +839,14 @@
         }
         
         // 查询患者
+        // 查询方式切换时更新输入提示
+        document.querySelectorAll('input[name="queryType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const placeholders = { patient_id: '请输入病历号', card_id: '请输入卡号', name: '请输入患者姓名' };
+                document.getElementById('queryValue').placeholder = placeholders[this.value] || '请输入查询值';
+            });
+        });
+
         async function searchPatient() {
             const queryType = document.querySelector('input[name="queryType"]:checked').value;
             const queryValue = document.getElementById('queryValue').value.trim();
@@ -870,7 +882,9 @@
             const resultCount = document.getElementById('resultCount');
             const patientInfoCard = document.getElementById('patientInfoCard');
             
-            resultCount.textContent = `共 ${data.total_count} 条记录`;
+            resultCount.textContent = data.multiple_patients
+                ? `找到 ${new Set(data.visits.map(visit => visit.patient_id)).size} 位患者，共 ${data.total_count} 条记录，请核对姓名和卡号`
+                : `共 ${data.total_count} 条记录`;
             
             // 显示患者信息
             if (data.patient_info) {
@@ -908,13 +922,19 @@
                 `;
             }
             
-            // 渲染就诊记录
+            // 渲染就诊记录（同名多位患者时，每条卡上显示姓名+卡号以区分）
             const visitsHtml = data.visits.map(visit => `
                 <div class="visit-card">
                     <div class="visit-header">
                         <span class="visit-date">${visit.visit_date} ${visit.visit_time_desc}</span>
                         <span class="visit-dept">${visit.dept_name || visit.clinic_label}</span>
                     </div>
+                    ${data.multiple_patients ? `
+                    <div style="display:flex; gap:16px; padding:6px 0 10px; font-size:13px; color:#555; border-bottom:1px dashed #eee; margin-bottom:8px;">
+                        <span>👤 <b>${visit.patient_name}</b></span>
+                        <span>卡号: ${visit.card_id}</span>
+                        <span>${visit.sex || '-'} | ${visit.age}岁</span>
+                    </div>` : ''}
                     <div class="visit-body">
                         <div class="visit-info">
                             <div class="info-item">

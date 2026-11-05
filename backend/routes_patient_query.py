@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 患者查询API路由
-支持通过病历号或卡号查询患者就诊记录和处方记录
+支持通过病历号、卡号或姓名查询患者就诊记录和处方记录
 """
 
 from flask import Blueprint, request, jsonify, session
@@ -70,14 +70,16 @@ def search_patient():
         if not query_value:
             return error_response("请输入查询值", "MISSING_QUERY_VALUE")
 
-        if query_type not in ['patient_id', 'card_id']:
-            return error_response("查询类型必须是 patient_id 或 card_id", "INVALID_QUERY_TYPE")
+        if query_type not in ['patient_id', 'card_id', 'name']:
+            return error_response("查询类型必须是 patient_id、card_id 或 name", "INVALID_QUERY_TYPE")
 
         # 构建查询条件
         if query_type == 'patient_id':
             where_clause = "pr.patient_id = %s"
-        else:
+        elif query_type == 'card_id':
             where_clause = "pr.card_id = %s"
+        else:
+            where_clause = "LOCATE(%s, pr.name) > 0"
 
         # 查询患者就诊记录
         with db.get_cursor() as cursor:
@@ -120,9 +122,14 @@ def search_patient():
                 "total_count": 0
             }, "未找到患者就诊记录")
 
+        # 姓名查询可能命中多位患者：若涉及多个 patient_id，不展示单一患者信息卡，
+        # 避免把不同人的就诊记录混在同一患者名下（患者安全）；由前端在每条就诊卡上显示姓名+卡号
+        distinct_patient_ids = {v['patient_id'] for v in visits}
+        multiple_patients = len(distinct_patient_ids) > 1
+
         # 提取患者基本信息（从第一条记录）
         first_visit = visits[0]
-        patient_info = {
+        patient_info = None if multiple_patients else {
             "patient_id": first_visit['patient_id'],
             "card_id": first_visit['card_id'],
             "name": first_visit['patient_name'],
@@ -173,16 +180,23 @@ def search_patient():
                     visit['order_count'] = len(orders)
                     visit['cmc_count'] = sum(1 for o in orders if o.get('cmc_flag') == '1')
 
-        # 记录查询日志
+        # 记录查询日志（同名多患者时 patient_info 为 None，避免 TypeError）
         log_query(query_type, query_value, start_date, end_date,
-                  patient_info['patient_id'], patient_info['name'], len(visits))
+                  patient_info['patient_id'] if patient_info else None,
+                  patient_info['name'] if patient_info else query_value,
+                  len(visits))
+
+        result_message = f"查询成功，共找到{len(visits)}条就诊记录"
+        if multiple_patients:
+            result_message = f"查询成功，找到{len(distinct_patient_ids)}位患者，共{len(visits)}条就诊记录"
 
         return success_response({
             "patient_info": patient_info,
+            "multiple_patients": multiple_patients,
             "visits": visits,
             "total_count": len(visits),
             "can_query_prescription": can_query_prescription
-        }, f"查询成功，共找到{len(visits)}条就诊记录")
+        }, result_message)
 
     except Exception as e:
         logger.error(f"查询患者就诊记录失败: {e}")

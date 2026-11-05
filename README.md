@@ -22,7 +22,7 @@ clinical-workstation-release/
 ## 1. Windows 本地构建主应用镜像
 
 ```powershell
-docker build --platform linux/amd64 -t nurse-station:0.1.0 .
+docker build --platform linux/amd64 -t nurse-station:1.1.0 .
 ```
 
 确认镜像：
@@ -34,7 +34,7 @@ docker image ls nurse-station
 导出镜像：
 
 ```powershell
-docker save -o .\nurse-station_0.1.0.tar nurse-station:0.1.0
+docker save -o .\nurse-station_1.1.0.tar nurse-station:1.1.0
 ```
 
 ## 2. 上传到 CentOS 宿主机

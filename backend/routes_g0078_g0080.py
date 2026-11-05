@@ -45,6 +45,15 @@ def error_response(message, code="ERROR", status_code=400):
         "timestamp": datetime.now().isoformat()
     }), status_code
 
+def norm_number(v):
+    """将 HIS 返回的浮点数字段（如 45.0）规范为整数显示；非数值原样返回"""
+    try:
+        f = float(v)
+        return int(f) if f.is_integer() else f
+    except (TypeError, ValueError):
+        return v
+
+
 def get_his_adapter():
     """获取HIS适配器实例"""
     if not HIS_WEBAPI_CONFIG.get('enabled'):
@@ -57,6 +66,40 @@ def get_his_adapter():
         return None
     
     return get_his_webapi_adapter(base_url, meskey, HIS_WEBAPI_CONFIG.get('timeout', 30))
+
+# 护士个人置顶：日期无关，按科室、号别、午别匹配。
+@api_bp.route('/pinned-schedules', methods=['GET', 'PUT', 'DELETE'])
+@require_login
+def pinned_schedules():
+    nurse_id = session.get('nurse_id')
+    if not nurse_id:
+        return error_response("请先登录", "UNAUTHORIZED", 401)
+    try:
+        with db.get_cursor() as cursor:
+            if request.method == 'GET':
+                cursor.execute("SELECT clinic_dept, clinic_label, time_desc FROM nurse_pinned_schedules WHERE nurse_id = %s", (nurse_id,))
+                return success_response({"pins": cursor.fetchall()})
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict) or not isinstance(data.get('schedule_id'), str) or not data['schedule_id']:
+                return error_response("缺少排班ID", "INVALID_PARAMS")
+            cursor.execute("SELECT clinic_dept, clinic_label, time_desc FROM clinic_schedules WHERE schedule_id = %s", (data['schedule_id'],))
+            schedule = cursor.fetchone()
+            if not schedule:
+                return error_response("号别排班不存在，请刷新", "NOT_FOUND", 404)
+            if not is_admin() and not any(str(schedule['clinic_dept']).startswith(code) for code in get_current_dept_codes()):
+                return error_response("无权操作该科室号别", "FORBIDDEN", 403)
+            params = (nurse_id, schedule['clinic_dept'], schedule['clinic_label'], schedule['time_desc'])
+            if request.method == 'PUT':
+                cursor.execute("""INSERT INTO nurse_pinned_schedules (nurse_id, clinic_dept, clinic_label, time_desc)
+                    VALUES (%s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE nurse_id = VALUES(nurse_id)""", params)
+            else:
+                cursor.execute("""DELETE FROM nurse_pinned_schedules
+                    WHERE nurse_id = %s AND clinic_dept = %s AND clinic_label = %s AND time_desc = %s""", params)
+        return success_response({"pinned": request.method == 'PUT'})
+    except Exception:
+        logger.exception("护士置顶配置读写失败")
+        return error_response("置顶配置保存或读取失败，请联系管理员", "DB_ERROR", 500)
 
 # ============ G0078 号别排班接口 ============
 
@@ -312,11 +355,13 @@ def get_patient_registrations():
                     'card_id': reg.get('CARD_ID', ''),
                     'name': reg.get('NAME', ''),
                     'sex': reg.get('SEX', ''),
-                    'age': reg.get('AGE', 0),
+                    'age': norm_number(reg.get('AGE', 0)),
                     'charge_type': reg.get('CHARGE_TYPE', ''),
-                    'serial_no': reg.get('SERIAL_NO', 0),
-                    'pnum': reg.get('PNUM', 0),
-                    'fre_date': reg.get('FRE_DATE')
+                    'serial_no': norm_number(reg.get('SERIAL_NO', 0)),
+                    'pnum': norm_number(reg.get('PNUM2', reg.get('PNUM', 0))),
+                    'fre_date': reg.get('FRE_DATE'),
+                    'telephone': reg.get('TELEPHONE', ''),
+                    'registration_status': reg.get('REGISTRATION_STATUS', '')
                 })
 
             if keyword:
@@ -341,7 +386,7 @@ def get_patient_registrations():
                 SELECT 
                     registration_id, visit_date, visit_no, visit_time_desc,
                     clinic_label, patient_id, card_id, name, sex, age,
-                    charge_type, serial_no, pnum, fre_date
+                    charge_type, serial_no, pnum, fre_date, telephone, registration_status
                 FROM patient_registrations 
                 WHERE visit_date = %s AND clinic_label = %s AND visit_time_desc = %s
             """

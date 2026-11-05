@@ -1,0 +1,1218 @@
+<!--
+================================================================================
+软件名称：北京医院门诊护士工作站
+文件名称：patient_query.html
+功能描述：患者查询页面，支持按病历号、卡号或姓名查询就诊记录及处方信息
+开发单位：北京医院
+开发日期：2026年8月
+版本号：V1.0
+================================================================================
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多人提醒测试（模拟数据）</title>
+    <style>
+        :root {
+            --primary-color: #0066cc;
+            --primary-light: #3385d6;
+            --primary-dark: #0052a3;
+            --accent-color: #00a8a8;
+            --success-color: #52c41a;
+            --warning-color: #faad14;
+            --error-color: #f5222d;
+            --text-primary: #262626;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --border-color: #e8e8e8;
+            --bg-color: #f5f7fa;
+            --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            --card-shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-primary); 
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+        }
+        
+        /* 顶部导航 */
+        .header {
+            background: linear-gradient(135deg, #0066cc 0%, #00a8a8 100%);
+            color: #fff;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .header-logo {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .header-nav {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .nav-item {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+        
+        .nav-item.active {
+            background: rgba(255,255,255,0.25);
+            color: #fff;
+            font-weight: 500;
+        }
+        
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.15);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .btn-workbench {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .btn-workbench:hover {
+            background: rgba(255,255,255,0.25);
+        }
+        
+        /* 主容器 */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 64px);
+            overflow: hidden;
+        }
+        
+        /* 左侧查询面板 */
+        .query-panel {
+            width: 380px;
+            background: #fff;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f4ff 100%);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .panel-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .query-form {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,102,204,0.1);
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        
+        .radio-item input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: #fff;
+            width: 100%;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+        }
+        
+        /* 患者信息卡片 */
+        .patient-info-card {
+            margin: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f6ffed 0%, #f0fff4 100%);
+            border: 1px solid #b7eb8f;
+            border-radius: 12px;
+            display: none;
+        }
+        
+        .patient-info-card.show {
+            display: block;
+        }
+        
+        .patient-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+        
+        .patient-detail {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+        
+        /* 右侧结果区域 */
+        .result-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 20px;
+        }
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .result-count {
+            color: var(--text-tertiary);
+            font-size: 14px;
+            background: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .result-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        /* 就诊记录卡片 */
+        .visit-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        
+        .visit-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #f0f7ff 0%, #e6f4ff 100%);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .visit-date {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 15px;
+        }
+        
+        .visit-dept {
+            color: var(--accent-color);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .visit-body {
+            padding: 20px;
+        }
+        
+        .visit-info {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #fafbfc;
+            border-radius: 8px;
+        }
+        
+        .info-item {
+            font-size: 14px;
+        }
+        
+        .info-label {
+            color: var(--text-tertiary);
+            margin-right: 6px;
+        }
+        
+        .info-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        /* 处方表格 */
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .order-table th {
+            background: #fafbfc;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .order-table td {
+            padding: 12px 16px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .order-table tr:hover {
+            background: #f6ffed;
+        }
+        
+        .cmc-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: #fff2e8;
+            color: #fa541c;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        /* 扫码按钮 */
+        .scan-btn {
+            padding: 6px 14px;
+            background: var(--primary-color);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .scan-btn:hover {
+            background: var(--primary-light);
+        }
+        
+        .scan-btn:disabled {
+            background: var(--success-color);
+            cursor: not-allowed;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-tertiary);
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state-text {
+            font-size: 16px;
+        }
+        
+        /* 权限提示 */
+        .permission-notice {
+            padding: 16px 20px;
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #874d00;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 报到时间 */
+        .fre-date {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+        
+        .no-fre-date {
+            color: var(--warning-color);
+        }
+        
+        /* 扫码模态框 */
+        .scan-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .scan-modal.active {
+            display: flex;
+        }
+        
+        .scan-modal-content {
+            background: #fff;
+            border-radius: 16px;
+            width: 480px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .scan-modal-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            padding: 24px 30px;
+            color: #fff;
+        }
+        
+        .scan-modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .scan-modal-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .scan-modal-body {
+            padding: 30px;
+        }
+        
+        .scan-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .scan-form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .scan-form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .scan-form-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,102,204,0.1);
+        }
+        
+        .scan-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        
+        .btn-modal-cancel {
+            background: #f0f0f0;
+            color: var(--text-secondary);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-modal-cancel:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-modal-submit {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-modal-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+        }
+        
+        .scan-result {
+            margin-top: 20px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .scan-result.success {
+            background: #f6ffed;
+            color: var(--success-color);
+            border: 1px solid #b7eb8f;
+            display: block;
+        }
+        
+        .scan-result.error {
+            background: #fff1f0;
+            color: var(--error-color);
+            border: 1px solid #ffa39e;
+            display: block;
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+<div style="padding:12px;background:#fff3cd;color:#664d03;text-align:center">本地模拟测试：虚构患者，不连接后端。默认查两位同名“王小明”；输入“王”查三位，“李明”查一位。</div>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="header-brand">
+            <div class="header-logo">🏥</div>
+            <div class="header-title">CVOnto 护士站</div>
+        </div>
+        
+        <nav class="header-nav">
+            <a href="../index.html" class="nav-item">
+                <span>📋</span>
+                <span>工作台</span>
+            </a>
+            <a href="patient_query.html" class="nav-item active">
+                <span>🔍</span>
+                <span>患者查询</span>
+            </a>
+            <a href="../nurse_admin.html" class="nav-item" id="adminNavItem" style="display: none;">
+                <span>⚙️</span>
+                <span>权限管理</span>
+            </a>
+        </nav>
+        
+        <div class="header-user">
+            <div class="user-info">
+                <span>👤</span>
+                <span id="nurseName">--</span>
+            </div>
+            <a href="../index.html" class="btn-workbench">
+                <span>←</span>
+                <span>返回工作台</span>
+            </a>
+            <button class="btn-logout" onclick="doLogout()">
+                <span>🚪</span>
+                <span>退出</span>
+            </button>
+        </div>
+    </header>
+    
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 左侧查询面板 -->
+        <div class="query-panel">
+            <div class="panel-header">
+                <h2>🔍 患者查询</h2>
+            </div>
+            
+            <div class="query-form">
+                <div class="form-group">
+                    <label class="form-label">查询方式</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="queryType" value="patient_id" checked>
+                            <span>病历号</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="queryType" value="card_id">
+                            <span>卡号</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="queryType" value="name">
+                            <span>姓名</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">查询值</label>
+                    <input type="text" class="form-control" id="queryValue" placeholder="请输入病历号或卡号">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">开始日期</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">结束日期</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+                
+                <button class="btn btn-primary" onclick="searchPatient()">
+                    <span>🔍</span>
+                    <span>查询</span>
+                </button>
+            </div>
+            
+            <!-- 患者信息卡片 -->
+            <div class="patient-info-card" id="patientInfoCard">
+                <div class="patient-name" id="patientName"></div>
+                <div class="patient-detail" id="patientDetail"></div>
+            </div>
+        </div>
+        
+        <!-- 右侧结果区域 -->
+        <div class="result-panel">
+            <div class="result-header">
+                <span class="result-title">就诊记录</span>
+                <span class="result-count" id="resultCount">共 0 条记录</span>
+            </div>
+            
+            <div class="result-content" id="resultContent">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div class="empty-state-text">请输入查询条件进行查询</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 扫码模态框 -->
+    <div class="scan-modal" id="scanModal">
+        <div class="scan-modal-content">
+            <div class="scan-modal-header">
+                <div class="scan-modal-title">📦 高值耗材扫码</div>
+                <div class="scan-modal-subtitle" id="scanModalSubtitle">请扫描或输入耗材条码</div>
+            </div>
+            
+            <div class="scan-modal-body">
+                <div class="scan-form-group">
+                    <label class="scan-form-label">耗材条码</label>
+                    <input type="text" class="scan-form-input" id="cmcCodeInput" placeholder="请扫描或输入耗材条码" autofocus>
+                </div>
+                
+                <div class="scan-result" id="scanResult"></div>
+                
+                <div class="scan-modal-actions">
+                    <button class="btn-modal-cancel" onclick="closeScanModal()">取消</button>
+                    <button class="btn-modal-submit" onclick="submitScan()">确认扫码</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+(async () => {
+  // 仅当前页面有效；刷新后恢复。所有数据均为虚构，不发送登录或业务请求。
+  const today = new Date().toISOString().slice(0, 10);
+  const nurse = { nurse_id: 'console-demo', nurse_code: 'DEMO', name: '测试护士', role: 'nurse', permissions: ['query_patient'] };
+  const schedules = ['测试内科', '测试外科'].map((name, i) => ({ schedule_id: `demo-${i}`, clinic_label: name, dept_name: name, time_desc: '上午', registration_limits: 30, registration_num: 4 }));
+  const patients = ['王小明', '王小明', '王芳', '李明'].map((name, i) => ({
+    registration_id: `demo-reg-${i}`, patient_id: `DEMO-P${i}`, visit_no: `DEMO-V${i}`, card_id: `DEMO-C${i}`,
+    name, sex: i === 2 ? '女' : '男', age: 30 + i, charge_type: '自费', serial_no: i + 1, pnum: i + 1,
+    telephone: i === 3 ? '' : `测试电话-${i + 1}`, registration_status: ['已就诊', '候诊', '已就诊', ''][i],
+    fre_date: i % 2 === 0 ? `${today} 08:30:00` : null, visit_date: today, visit_time_desc: '上午', clinic_label: '测试内科'
+  }));
+  if (!window.__nurseDemoOriginalFetch) window.__nurseDemoOriginalFetch = window.fetch;
+  window.fetch = async (input, options = {}) => {
+    const rawUrl = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const url = new URL(rawUrl, location.protocol === 'file:' ? 'http://localhost/' : location.href);
+    const apiPath = url.pathname.replace(/^\/[A-Za-z]:(?=\/api\/)/, '');
+    const ok = data => new Response(JSON.stringify({ success: true, data, message: '本地模拟数据' }), { headers: { 'Content-Type': 'application/json' } });
+    switch (apiPath) {
+      case '/api/v1/auth/login': case '/api/v1/auth/current': return ok(nurse);
+      case '/api/v1/auth/logout': return ok(null);
+      case '/api/v1/clinic-schedules': return ok({ schedules, dept_groups: schedules.map(s => ({ dept_name: s.dept_name, schedules: [s] })) });
+      case '/api/v1/patient-registrations': {
+        const q = url.searchParams.get('keyword') || '';
+        const rows = patients.filter(p => p.name.includes(q) || p.card_id === q).map(p => ({ ...p, clinic_label: url.searchParams.get('clinic_label') || p.clinic_label }));
+        return ok({ registrations: rows, total_count: rows.length, source: 'demo' });
+      }
+      case '/api/v1/patient-orders': return ok({ class_groups: {}, orders: [] });
+      case '/api/v1/patient-query/search': {
+        const type = url.searchParams.get('query_type'), q = url.searchParams.get('query_value') || '';
+        const rows = patients.filter(p => type === 'name' ? p.name.includes(q) : p[type] === q)
+          .filter(p => (!url.searchParams.get('start_date') || p.visit_date >= url.searchParams.get('start_date')) && (!url.searchParams.get('end_date') || p.visit_date <= url.searchParams.get('end_date')));
+        const visits = rows.map(p => ({ ...p, patient_name: p.name, dept_name: p.clinic_label, orders: [], order_count: 0, cmc_count: 0 }));
+        return ok({ patient_info: rows.length === 1 ? rows[0] : null, multiple_patients: rows.length > 1, visits, total_count: visits.length, can_query_prescription: false });
+      }
+      default: throw new Error(`模拟模式未实现此请求，已阻止发送：${url.pathname}`);
+    }
+  };
+  window.stopNurseDemo = () => { window.fetch = window.__nurseDemoOriginalFetch; delete window.__nurseDemoOriginalFetch; sessionStorage.removeItem('nurseInfo'); console.info('模拟已停止，请刷新页面。'); };
+  console.info('模拟已开启：4位患者，已报到2位、未报到2位、已就诊2位；姓名搜“王”命中3位。刷新或导航后需重新运行；stopNurseDemo() 停止。');
+})();
+
+</script>
+<script>
+        // 初始化
+        const API_BASE = '';
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+        
+        // 全局变量
+        let currentScanItem = null;
+        let currentVisitData = null;
+        let nurseInfo = null;
+        
+        // 页面加载时检查登录状态
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkLogin();
+        });
+        
+        async function checkLogin() {
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/auth/current`, {
+                    credentials: 'include'
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    nurseInfo = result.data;
+                    document.getElementById('nurseName').textContent = nurseInfo.name;
+                    checkAdminPermission();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } catch (e) {
+                console.error('检查登录状态失败:', e);
+                window.location.href = 'index.html';
+            }
+        }
+        
+        function checkAdminPermission() {
+            try {
+                const role = nurseInfo.role || '';
+                if (role === 'admin' || role === 'head_nurse') {
+                    document.getElementById('adminNavItem').style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('检查管理员权限失败:', error);
+            }
+        }
+        
+        async function doLogout() {
+            if (!confirm('确定要退出登录吗？')) return;
+            
+            try {
+                await fetch(`${API_BASE}/api/v1/auth/logout`, { method: 'POST', credentials: 'include' });
+            } catch (e) {
+                console.error('退出请求失败:', e);
+            }
+            
+            sessionStorage.removeItem('nurseInfo');
+            window.location.href = 'index.html';
+        }
+        
+        // 查询患者
+        // 查询方式切换时更新输入提示
+        document.querySelectorAll('input[name="queryType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const placeholders = { patient_id: '请输入病历号', card_id: '请输入卡号', name: '请输入患者姓名' };
+                document.getElementById('queryValue').placeholder = placeholders[this.value] || '请输入查询值';
+            });
+        });
+
+        async function searchPatient() {
+            const queryType = document.querySelector('input[name="queryType"]:checked').value;
+            const queryValue = document.getElementById('queryValue').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!queryValue) {
+                alert('请输入查询值');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/patient-query/search?query_type=${queryType}&query_value=${encodeURIComponent(queryValue)}&start_date=${startDate}&end_date=${endDate}`, {
+                    credentials: 'include'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentVisitData = result.data;
+                    renderResult(result.data);
+                } else {
+                    alert(result.message || '查询失败');
+                }
+            } catch (error) {
+                console.error('查询失败:', error);
+                alert('查询失败，请重试');
+            }
+        }
+        
+        // 渲染查询结果
+        function renderResult(data) {
+            const resultContent = document.getElementById('resultContent');
+            const resultCount = document.getElementById('resultCount');
+            const patientInfoCard = document.getElementById('patientInfoCard');
+            
+            resultCount.textContent = data.multiple_patients
+                ? `找到 ${new Set(data.visits.map(visit => visit.patient_id)).size} 位患者，共 ${data.total_count} 条记录，请核对姓名和卡号`
+                : `共 ${data.total_count} 条记录`;
+            
+            // 显示患者信息
+            if (data.patient_info) {
+                document.getElementById('patientName').textContent = data.patient_info.name;
+                document.getElementById('patientDetail').innerHTML = `
+                    病历号: ${data.patient_info.patient_id}<br>
+                    卡号: ${data.patient_info.card_id}<br>
+                    性别: ${data.patient_info.sex} | 年龄: ${data.patient_info.age}岁<br>
+                    费别: ${data.patient_info.charge_type || '-'}
+                `;
+                patientInfoCard.classList.add('show');
+            } else {
+                patientInfoCard.classList.remove('show');
+            }
+            
+            // 显示就诊记录
+            if (data.visits.length === 0) {
+                resultContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-text">未找到就诊记录</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 权限提示
+            let permissionNotice = '';
+            if (!data.can_query_prescription) {
+                permissionNotice = `
+                    <div class="permission-notice">
+                        <span>⚠️</span>
+                        <span>您没有处方查询权限，只能查看就诊记录</span>
+                    </div>
+                `;
+            }
+            
+            // 渲染就诊记录（同名多位患者时，每条卡上显示姓名+卡号以区分）
+            const visitsHtml = data.visits.map(visit => `
+                <div class="visit-card">
+                    <div class="visit-header">
+                        <span class="visit-date">${visit.visit_date} ${visit.visit_time_desc}</span>
+                        <span class="visit-dept">${visit.dept_name || visit.clinic_label}</span>
+                    </div>
+                    ${data.multiple_patients ? `
+                    <div style="display:flex; gap:16px; padding:6px 0 10px; font-size:13px; color:#555; border-bottom:1px dashed #eee; margin-bottom:8px;">
+                        <span>👤 <b>${visit.patient_name}</b></span>
+                        <span>卡号: ${visit.card_id}</span>
+                        <span>${visit.sex || '-'} | ${visit.age}岁</span>
+                    </div>` : ''}
+                    <div class="visit-body">
+                        <div class="visit-info">
+                            <div class="info-item">
+                                <span class="info-label">就诊号:</span>
+                                <span class="info-value">${visit.visit_no}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">序号:</span>
+                                <span class="info-value">${visit.serial_no}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">报到:</span>
+                                <span class="${visit.fre_date ? 'fre-date' : 'no-fre-date'}">
+                                    ${visit.fre_date ? formatDateTime(visit.fre_date) : '未报到'}
+                                </span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">处方:</span>
+                                <span class="info-value">${visit.order_count} 项</span>
+                                ${visit.cmc_count > 0 ? `<span class="cmc-badge">${visit.cmc_count} 项需扫码</span>` : ''}
+                            </div>
+                        </div>
+                        
+                        ${visit.orders && visit.orders.length > 0 ? `
+                            <table class="order-table">
+                                <thead>
+                                    <tr>
+                                        <th>项目类别</th>
+                                        <th>项目编码</th>
+                                        <th>项目名称</th>
+                                        <th>规格</th>
+                                        <th>用法</th>
+                                        <th>数量</th>
+                                        <th>单价</th>
+                                        <th>状态</th>
+                                        <th>扫码</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${visit.orders.map(order => {
+                                        const cmcFlag = String(order.cmc_flag || '0');
+                                        const needsScan = cmcFlag === '1';
+                                        const isScanned = order.scanned === true;
+                                        
+                                        return `
+                                        <tr>
+                                            <td>${order.class_name}</td>
+                                            <td>${order.item_code}</td>
+                                            <td>${order.item_name}</td>
+                                            <td>${order.package_spec || '-'}</td>
+                                            <td>${order.administration || '-'}</td>
+                                            <td>${order.quantity}</td>
+                                            <td>¥${order.price}</td>
+                                            <td>${order.states || '-'}</td>
+                                            <td>
+                                                ${needsScan 
+                                                    ? `<button class="scan-btn" 
+                                                              onclick="openScanModal('${visit.visit_date}', '${order.presc_no}', '${order.item_no}', '${order.item_code}', '${order.item_name}', '${order.presc_date || visit.visit_date}')"
+                                                              ${isScanned ? 'disabled' : ''}>
+                                                          ${isScanned ? '✅ 已扫码' : '📦 扫码'}
+                                                       </button>` 
+                                                    : '<span style="color: var(--text-tertiary);">-</span>'}
+                                            </td>
+                                        </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            resultContent.innerHTML = permissionNotice + visitsHtml;
+        }
+        
+        // 打开扫码模态框
+        function openScanModal(visitDate, prescNo, itemNo, itemCode, itemName, prescDate) {
+            if (!prescDate || prescDate === 'undefined' || prescDate === 'null') {
+                prescDate = visitDate + ' ' + new Date().toTimeString().split(' ')[0];
+            }
+            
+            if (prescDate.length === 10) {
+                prescDate = prescDate + ' ' + new Date().toTimeString().split(' ')[0];
+            }
+            
+            if (prescDate.includes('GMT')) {
+                const dt = new Date(prescDate);
+                if (!isNaN(dt.getTime())) {
+                    // Flask 将 MySQL DATETIME 序列化为 GMT 文本时，保持原始时钟值，
+                    // 不按浏览器本地时区转换，避免 I0010 处方日期偏移 8 小时。
+                    const year = dt.getUTCFullYear();
+                    const month = String(dt.getUTCMonth() + 1).padStart(2, '0');
+                    const day = String(dt.getUTCDate()).padStart(2, '0');
+                    const hours = String(dt.getUTCHours()).padStart(2, '0');
+                    const minutes = String(dt.getUTCMinutes()).padStart(2, '0');
+                    const seconds = String(dt.getUTCSeconds()).padStart(2, '0');
+                    prescDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                }
+            }
+            
+            currentScanItem = {
+                visitDate: visitDate,
+                prescNo: prescNo,
+                itemNo: itemNo,
+                itemCode: itemCode,
+                itemName: itemName,
+                prescDate: prescDate
+            };
+            
+            document.getElementById('scanModalSubtitle').textContent = `耗材: ${itemName} (${itemCode})`;
+            document.getElementById('cmcCodeInput').value = '';
+            document.getElementById('scanResult').style.display = 'none';
+            document.getElementById('scanModal').classList.add('active');
+            
+            setTimeout(() => {
+                document.getElementById('cmcCodeInput').focus();
+            }, 100);
+        }
+        
+        // 关闭扫码模态框
+        function closeScanModal() {
+            document.getElementById('scanModal').classList.remove('active');
+            currentScanItem = null;
+        }
+        
+        // 提交扫码
+        async function submitScan() {
+            const cmcCode = document.getElementById('cmcCodeInput').value.trim();
+            
+            if (!cmcCode) {
+                showScanResult('请输入耗材条码', 'error');
+                return;
+            }
+            
+            if (!currentScanItem) {
+                showScanResult('扫码信息丢失，请重试', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/v1/scan-consumable`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        presc_date: currentScanItem.prescDate,
+                        presc_no: currentScanItem.prescNo,
+                        cmc_code: cmcCode,
+                        item_no: currentScanItem.itemNo,
+                        item_code: currentScanItem.itemCode
+                    })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    showScanResult('扫码成功！', 'success');
+                    
+                    if (currentVisitData) {
+                        for (let visit of currentVisitData.visits) {
+                            if (visit.orders) {
+                                for (let order of visit.orders) {
+                                    if (order.presc_no === currentScanItem.prescNo && 
+                                        order.item_no === currentScanItem.itemNo && 
+                                        order.item_code === currentScanItem.itemCode) {
+                                        order.scanned = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    setTimeout(() => {
+                        renderResult(currentVisitData);
+                        closeScanModal();
+                    }, 1500);
+                } else {
+                    showScanResult('扫码失败: ' + result.message, 'error');
+                }
+            } catch (e) {
+                console.error('扫码失败:', e);
+                showScanResult('扫码失败，请重试', 'error');
+            }
+        }
+        
+        // 显示扫码结果
+        function showScanResult(message, type) {
+            const resultEl = document.getElementById('scanResult');
+            resultEl.textContent = message;
+            resultEl.className = 'scan-result ' + type;
+        }
+        
+        // 格式化日期时间
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return '';
+            try {
+                const dt = new Date(dateTimeStr);
+                return dt.toLocaleString('zh-CN', { 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            } catch (e) {
+                return dateTimeStr;
+            }
+        }
+        
+        // 回车键查询
+        document.getElementById('queryValue').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchPatient();
+            }
+        });
+        
+        // 扫码输入框回车事件
+        document.getElementById('cmcCodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitScan();
+            }
+        });
+    </script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    document.querySelector('input[name="queryType"][value="name"]').checked = true;
+    document.getElementById('queryValue').value = '王小明';
+    document.getElementById('queryValue').placeholder = '请输入患者姓名';
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('startDate').value = today;
+    document.getElementById('endDate').value = today;
+    await searchPatient();
+});
+</script>
+</body>
+</html>
