@@ -142,16 +142,21 @@ def get_clinic_schedules():
         
         # 尝试从HIS同步数据
         adapter = get_his_adapter()
+        logger.info("排班查询 date=%s dept_code=%s dept_name=%s time_desc=%s is_admin=%s nurse_depts=%s his_enabled=%s",
+                    clinic_date, dept_code, dept_name, time_desc, is_admin(), nurse_dept_codes, bool(adapter))
         if adapter:
             try:
                 use_encryption = HIS_WEBAPI_CONFIG.get('use_encryption', False)
                 his_result = adapter.get_all_clinic_schedules(clinic_date=clinic_date, use_encryption=use_encryption)
+                logger.info("排班HIS结果 date=%s success=%s count=%s message=%s",
+                            clinic_date, his_result.get('success'), len(his_result.get('schedules') or []), his_result.get('message'))
                 
                 if his_result.get('success') and his_result.get('schedules'):
                     # 同步到数据库
                     conn = db.get_connection()
                     try:
                         sync_result = adapter.sync_clinic_schedules_to_db(conn, clinic_date)
+                        logger.info("排班入库结果 date=%s result=%s", clinic_date, sync_result)
                         if sync_result.get('success'):
                             logger.info(f"号别排班数据同步成功: 新增{sync_result.get('added', 0)}条, 更新{sync_result.get('updated', 0)}条")
                         else:
@@ -195,6 +200,7 @@ def get_clinic_schedules():
             
             cursor.execute(sql, params)
             schedules = cursor.fetchall()
+            logger.info("排班本地查询 date=%s filters=%s count=%s", clinic_date, params, len(schedules))
         
         # 按科室分组
         dept_groups = {}

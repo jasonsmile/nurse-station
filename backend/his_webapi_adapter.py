@@ -166,6 +166,10 @@ class HISWebAPIAdapter:
         url = f"{self.base_url}/api/HisInterface/HisRequst"
         payload = self._build_request_payload(service_code, list_params, use_encryption)
 
+        if service_code == "G0078":
+            logger.debug("G0078请求 url=%s mesid=%s meskey_tail=%s encrypted=%s list=%s",
+                        url, payload['MESID'], self.meskey[-4:], use_encryption, list_params)
+
         logger.debug(f"HIS请求 [{service_code}]: {json.dumps(payload, ensure_ascii=False)}")
 
         if service_code == "G0013":
@@ -201,6 +205,12 @@ class HISWebAPIAdapter:
                 )
 
             result = response.json()
+
+            if service_code == "G0078":
+                mes = result.get("MES") or {}
+                logger.debug("G0078响应 mesid=%s http=%s code=%r message=%r oudata_count=%s data_present=%s",
+                            payload['MESID'], response.status_code, result.get('CODE'),
+                            result.get('MESSAGE'), len(mes.get('OUDATA') or []), bool(result.get('DATA')))
 
             # 检查响应中是否有加密的DATA字段，如有则解密
             encrypted_data = result.get("DATA")
@@ -488,7 +498,10 @@ class HISWebAPIAdapter:
             success, message, data = self._check_response(response)
 
             if not success:
-                logger.error(f"G0078接口返回错误: {message}")
+                if "没有查到任何数据" in str(message):
+                    logger.debug("G0078无数据 date=%s ono=%s eno=%s message=%s", clinic_date, ono, eno, message)
+                else:
+                    logger.error("G0078接口返回错误 date=%s ono=%s eno=%s message=%s", clinic_date, ono, eno, message)
                 return {
                     "success": False,
                     "message": message,
@@ -545,9 +558,18 @@ class HISWebAPIAdapter:
             )
 
             if not result.get("success"):
+                # HIS 在越过最后一页时返回业务错误，而不是成功的空列表。
+                # 已取得完整分页数据时，将该特定错误视为分页结束。
+                if all_schedules and "没有查到任何数据" in str(result.get("message", "")):
+                    logger.info("G0078分页结束 date=%s ono=%s accumulated=%s",
+                                clinic_date, ono, len(all_schedules))
+                    break
+                logger.warning("G0078分页失败 date=%s ono=%s eno=%s message=%s",
+                               clinic_date, ono, eno, result.get('message'))
                 return result
 
             schedules = result.get("schedules", [])
+            logger.debug("G0078分页 date=%s ono=%s eno=%s count=%s", clinic_date, ono, eno, len(schedules))
             all_schedules.extend(schedules)
 
             if len(schedules) < batch_size:
